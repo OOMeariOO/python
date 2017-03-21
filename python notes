@@ -1,0 +1,447 @@
+1.python的缺点：
+	第一个缺点就是运行速度慢，和C程序相比非常慢，因为python是解释型语言，你的代码在执行时会一行一行地翻译成CPU能理解的机器码，这个翻译过程非常耗时，所以慢。而C程序是运行前直接编译成CPU能执行的机器码，所以非常快。
+	第二个缺点就是代码不能加密，如果要发布你的python程序，实际上就是发布源码，这一点跟C语言不同，C语言不用发布源代码，只需要把编译后的机器码（也就是在windows上常见的xxx.exe文件）发布出去。要从机器码反推出C代码是不可能的，所以，凡是编译型的语言都没有这个问题，解释型语言必须把源码发布出去。
+
+2.python解释器：
+	（1）CPython：从官网下载安装好python后，就直接获得了一个官方版本的解释器，就是CPython。这个解释器使用C开发的。在命令行下运行python就是启动CPython解释器。它是使用最广的python解释器。
+	（2）IPython：IPython是基于CPython之上的交互式解释器，也就是说，IPython只是在交互式上有所增强，但执行Python代码的功能和CPython是完全一样的。
+	CPython用>>>作为提示符，IPython用IN [序号]：作为提示符。
+	（3）PyPy：它的目标是执行速度。它采用JIT技术，对python代码进行动态的编译（注意不是解释），所以可以显著的提高Python代码的执行速度。PyPy和CPython是有些不同的，这就导致相同的Python代码在两种解释器下执行可能会有不同的结果。
+	（4）Jython：它是运行在Java平台上的Python解释器，可以直接把Python代码编译成Java字节码执行。
+	（5）IronPython：IronPython和Jython类似，只不过IronPython是运行在微软.Net平台上的Python解释器，可以直接把Python代码编译成.Net的字节码。
+
+3.输入时Input，输出是Output，因此，我们把输入输出统称为Input/Output，或者简写为IO。
+
+4.浮点数也就是小数，对于很大或者很小的浮点数，就必须用科学计数法表示，把10用e代替，1.23x10的九次方就是1.23e9
+
+5.变量本身类型不固定的语言称之为动态语言，与之对应的是静态语言。静态语言在定义变量时必须指定变量类型，如果赋值时类型不匹配，就会报错。
+
+6.常量就是不能变的变量，比如π就是一个常量，在python中通常用全部大写的变量名表示常量。
+
+7.python支持多种数据类型，在计算机内部，可以把任何数据都看成一个“对象”，而变量就是在程序中用来指向这些数据对象的，对变量赋值就是把数据和变量给关联起来。
+
+8.python提供了ord()和chr()函数，可以把字母和对应的数字相互转换：
+	>>> ord('A')
+	65
+	>>> chr(65)
+	'A'
+
+9.Python再后来添加了对Unicode的支持，以Unicode表示的字符串用u'...'表示。
+把u'xxx'转换为UTF-8编码的'xxx'用encode('utf-8')方法。
+英文字符转换后表示的UTF-8的值和Unicode值相等（但占用的存储空间不同），而中文字符转换后1个Unicode字符将变为3个UTF-8字符。
+把UTF-8编码表示的字符串'xxx'转换为Unicode字符串u'xxx'用decode('utf-8')方法。
+
+10.格式化字符串的时候，字符串里面的%是一个普通字符的话，需要转义，用%%来表示一个%。
+
+11.把元素插入到list的指定位置：list.insert(n, 'xxx')
+删除list末尾的元素，用pop()方法：list.pop()
+要删除指定位置的元素，用pop(i)方法，其中i是索引值
+
+12.有序集合：list（初始化过后可以被更改） tuple（初始化过后不能修改） 
+不可变的tuple的意义：因为tuple不可变，所以代码更安全。
+tuple的陷阱：当你定义一个tuple时，在定义的时候，tuple的元素就必须被确定下来
+当定义只有一个元素的tuple时必须加一个逗号：t = (1,)
+
+13.避免dict中key不存在的错误有两种办法：一是通过in判断key是否存在，二是通过dict提供的get方法，如果key不存在，可以返回none，或者自己制定的value：
+>>>d.get('alibaba')
+>>>d.get('alibaba', -1)
+-1
+返回None的时候Python交互模式命令行不显示结果。
+删除一个key的时候用pop(key)，对应的value也会从dict中删除：d.pop('alibaba')
+dict内部存放的顺序和key放入的顺序是没有关系的。
+
+14.和list比较，dict有这几个特点：（1）查找和插入的速度极快，不会随着key的增		加而增加（2）需要占用大量的内存，内存浪费多。
+	list相反：（1）查找和插入的时间随着元素的增加而增加。（2）占用空间小，浪费内存很少。
+
+15.Python的可变和不可变对象：不可变：字符串，整数，tuple，浮点数， None。
+							 可变；list，dict，set（集合）
+	对于不变对象来说，调用对象自身的任意方法，也不会改变该对象自身的内容。相反这些方法会创建新的对象并返回，这样，就保证了不可变对象本身永远是不可变的。
+为什么要设计str、None这样的不可变对象：因为不可变对象一旦创建，对象内部的数据就不能修改，这样就减少了由于修改数据导致的错误，此外，由于对象不可变，多任务环境下同事读取对象不需要加锁，同时读一点问题都没有。我们在编程时，如果可以设计一个不可变对象，那就尽量设计成不可变对象。
+
+16.set和dict类似，也是一组key的集合，但不存储value。由于key不能重复，所以，在set中，没有重复的key。要创建一个set，需要提供一个list作为输入集合：
+>>>s = set([1,2,3])
+>>>s
+set([1,2,3])
+注意，传入的参数是一个list，而显示的set([1,2,3])只是告诉我们这个set内部有1,2,3这3个元素，显示的[]不表示这是一个set，重复元素在set中自动被过滤。
+通过add(key)方法可以添加元素到set中，可以重复添加，但不会有效果
+通过remove(key)方法可以删除元素：s.remove(x)
+set可以看成是数学意义上的无序和无重复元素的集合，因此，两个set可以做数学意义上的交集、并集等操作：
+>>>s1 = set([1,2,3])
+>>>s2 = set([2,3,4])
+>>>s1 & s2
+set([2,3])
+>>>s1 | s2
+set([1,2,3,4])
+set和dict的唯一区别仅在于没有存储对应的value，但是，set的原理和dict一样，所以，同样不可以放入可变对象，因为无法判断两个可变对象是否相等，也就无法保证set内部不会有重复元素。
+
+17.函数名起始就是指向一个函数对象的引用，完全可以把函数名赋值飞一个变量，相当于给这个函数起了一个“别名”：
+>>>a = abs
+>>>a(-1)
+1
+
+18.cmp函数仅能在python2.7版本中使用，
+	而在python3.5中需要使用：
+	operator.lt(a, b)
+	operator.le(a, b)
+	operator.eq(a, b)
+	operator.ne(a, b)
+	operator.ge(a, b)
+	operator.gt(a, b)
+	operator.lt(a, b)
+	operator.le(a, b)
+	operator.eq(a, b)
+	operator.ne(a, b)
+	operator.ge(a, b)
+	operator.gt(a, b) 
+
+19.python函数return多个值的时候，起始返回的仍然是但一值，返回的是一个tuple，在语法上，返回一个tuple可以省略括号，而多个变量可以同时接受一个tuple，按位置赋给对应的值，所以，Python的函数返回多值起始就是返回一个tuple，但写起来更方便。
+
+20.定义默认参数的函数时，默认参数必须指向不可变对象。
+
+21.定义可变参数的函数：在参数前面加一个*号：def calc(*numbers) 。如果已经有一个list或tuple，要调用一个可变参数怎么办：传参的时候在传的参数前面加一个*号（calc(*nums)）
+
+22.关键字参数：可变参数允许你传入0个或任意个参数，这些可变参数在函数调用时自动组装成为一个tuple。而关键字参数允许你传入0个或任意个含参数名的参数，这些关键字参数在函数内部自动组装为一个dict：
+def person(name, age, **kw):
+	print 'name:', name, 'age:', age, 'other:', kw
+函数person除了必选参数name和age外，还接受关键字参数kw。在调用该函数时，可以只传入必选参数：
+>>>person('milei', 26)
+name: milei age: 26 other: {}
+也可以传入任意个数的关键字参数:
+>>> person('milei', 26, city='HeBei')
+name: milei age: 26 other: {'city': 'HeBei'}
+>>> person('milei', 26, gender='M', job='engineer')
+name: milei age：26 other: {'gender':'M', 'job': 'engineer'}
+关键字参数有什么用？它可以扩展函数功能。比如，在person函数里，我们保证能接到name和age这两个参数，但是，如果调用者愿意提供更多的参数，我们也能收到。试想你正在做一个用户注册的功能，除了用户名和年龄是必填项，其他都是可选项，利用关键字参数来定义这个函数就能满足注册需求
+
+23.使用递归函数的优点是逻辑简单清晰，缺点是过深的调用会导致栈溢出。
+	针对尾递归优化的语言可以通过尾递归防止栈溢出。尾递归事实上和循环是等价的，没有循环语句的编程语言只能通过尾递归实现循环。
+	python标准的解释器没有针对尾递归做优化，任何递归函数都存在栈溢出的问题
+
+24.isinstance() 函数判断变量是否是某个指定类型
+
+25.enumerate() 将一个可迭代/可遍历的对象组成一个索引序列，利用它可以同时获得索引和值
+
+26.迭代器：迭代器是访问集合元素的一种方式。
+	使用迭代器：使用内建的工厂函数iter(iteration)可以获取迭代器对象，使用next()方法可以访问下一个元素。
+	python处理迭代器越界是跑出StopIteration异常。
+
+27.列表生成式：可以用一行语句代替循环生成list：[x*x for x in range(1,11)]
+
+28.生成器：列表元素可以按照某种算法推算出来，我们可以在循环的过程中不断推算出后续的元素，这种一边循环一遍计算的机制，称为生成器（Generator）
+要理解generator的工作原理，它在for循环的过程中不断计算出下一个元素，并在适当条件下结束for循环。
+要创建一个generator，有很多种方法，第一种方法很简单，只要把一个列表生成式的[]改成()，就创建了一个generator。打印generator的每一个元素可以通过generator的next()方法（这种方法比较笨），基本上是使用for循环的方式打印:
+>>>g = (x * x for x in range(10))
+>>>for n in g:
+...		print n
+...
+第二种方法是使用关键字yield。
+>>>def fib(max):
+...		n, a, b = 0, 0, 1
+...		while n < max:
+...			yield b
+...			a, b = b, a + b
+...			n = n + 1
+yield关键字的用法有点像return，这里最难理解的就是generator和函数的执行流程不一样。函数式顺序执行，遇到return语句或最后一行函数语句就返回。而变成generator的函数，在每次调用next()的时候执行，遇到yield语句返回，再次执行时从上次返回的yield语句处继续执行。
+
+29.函数式编程：是一种抽象度很高的编程范式，纯粹的函数式编程语言编写的函数没有变量，因此，任意一个函数，只要输入是确定的，输出就是确定的，这种纯函数我们称之为没有副作用。而允许使用变量的程序设计语言，由于函数内部的变量状态不确定，同样的输入，可能得到不同的输出，因此，这种函数是有副作用的。
+函数式编程的一个特点就是，允许把函数本身作为参数传入另一个函数，还允许返回一个函数
+
+30.函数本身也可以赋值给变量。既：变量可以指向函数。
+
+31.高阶函数：既然变量可以指向函数，函数的参数能接收变量，那么一个函数就可以接收另一个函数作为参数，这种函数就称之为高阶函数
+把函数作为参数传入，这样的函数称为高阶函数，函数式编程就是指这种高度抽象的编程范式。
+
+32.map() : map()函数接收两个参数，一个是函数，一个是序列，map将传入的函数依次作用到序列的每个元素，并把结果作为新的list返回。
+
+33.reduce(): python中的reduce内建函数是一个二元操作函数，他用来将一个数据集合（链表，元组等）中的所有数据进行下列操作：用传给reduce中的函数 func()（必须是一个二元操作函数）先对集合中的第1，2个数据进行操作，得到的结果再与第三个数据用func()函数运算，最后得到一个结果。
+在python 3.0.0.0以后, reduce已经不在built-in function里了, 要用它就得from functools import reduce.
+
+34.map() 和 reduce()的区别：第一点是，虽然这两个函数都是接收两个参数（第一个参数是一个函数，第二个参数是序列），但是map()接收的函数可以接收一个或多个参数，而reduce()中函数接收的参数必须是两个。
+第二点是，map()是将传入的函数以此作用到序列的每个元素，每个元素都是独自被函数“作用”一次；
+reduce()是将传入的函数作用在序列的第一个元素得到结果后，把这个结果继续与下一个元素作用。
+
+35.filter()函数作用于过滤序列，和map()类似，filter()也接收一个函数和一个序列，和map()不同的是，filter()把传入的函数以此作用于每个元素，然后根据返回值是True或False决定保留还是丢弃该元素。
+
+36.sorted()和sort():python中列表的内置函数sort()可以对列表中的元素进行排序，而全局性的sorted()函数则对所有可迭代的序列都是使用的，并且sout()函数是内置函数，会改变当前对象，而sorted()函数只会返回一个排序后的当前对象的副本，而不会改变当前对象
+sort()，原型：sort(fun, key, reverse=False)。基本使用方法：list.sort()
+参数fun是表明此sort函数是基于何种算法进行排序的，一般情况下python中用的是归并排序，并且一般情况下我们是不会重写此参数的
+参数key用来指定一个函数，此函数在每次元素比较时被调用，此函数代表的是排序的规则，也就是你按照什么规则对你的序列进行排序的
+参数reverce是用来表明是否逆序，默认False情况下按照升序
+sorted(): 对list、dict、字符串进行排序。
+sorted(iterable[, cmp[, key[, reverse]]])
+它是一个高阶函数，可以接收一个比较函数来实现自定义的排序
+
+37.函数作为返回值：高阶函数除了可以接收函数作为参数外，还可以把函数作为结果值返回。
+example：
+def lazy_sum(*args):
+	def sum():
+		ax = 0
+		for n in args:
+			ax = ax + n
+		return ax
+	return sum
+当我们调用lazy_sum时，返回的并不是求和结果，而是求和函数：
+>>>f = lazy_sum(1,2,3,4,5)
+>>>f
+<function sum at Ox10452f668>
+调用函数f时，才是计算求和的结果：
+>>>f()
+15
+在这个例子中，我们在函数lazy_sum中又定义了函数sum，并且，内部函数sum可以引用外部函数lazy_sum的参数和局部变量，当lazy_sum返回函数sum时，相关参数和变量都保存在返回的函数中，这种称为“闭包”的程序结构具有极大的威力。
+另外一点，当我们调用lazy_sum时，每次调用都会返回一个新的函数，即使传入相同的参数：
+>>>f1 = lazy_sum(1,2,3,4,5)
+>>>f2 = lazy_sum(1,2,3,4,5)
+>>>f1 == f2
+False
+f1()和f2()的调用结果互不影响。
+
+38.闭包：当一个函数返回了一个函数后，其内部的局部变量还被新函数引用，所以，闭包用起来简单，实现起来可不容易。
+example:
+def lazy_sum(*args):
+    def sum():
+        ax = 0
+        for n in args:
+            ax = ax + n
+        return ax
+    return sum
+
+>>>f = lazy_sum(1,2,3,4,5)
+>>>f
+<function sum at 0x10452f668>
+>>>f()
+15
+这里调用lazy_sum函数时，返回的是sum函数，并不会返回想要得到的和。但是lazy_sum函数的参数和变量还会被sum引用，所以，sum函数中的args还是（1,2,3,4,5），此时f()就是sum()。所以调用f()会输出结果。
+
+39.匿名函数：lambda x:x * x
+关键字lambda表示匿名函数，冒号前面的x表示函数参数。
+匿名函数有个限制，就是只能有一个表达式，不用写return，返回值就是该表达式的结果。
+
+40.装饰器：假设我们要增强一个函数的功能，比如在函数调用前后自动打印日志，但又不希望修改该函数的定义，这种在代码运行期间动态增加功能的方式，称之为“装饰器”（Decorator）。本质上，decorator就是一个返回函数的高阶函数。
+example:
+def log(func):
+	def wrapper(*args, **kw):
+		print 'call %s():'%func.__name__
+		return func(*args, **kw)
+	return wrapper
+@log
+def now():
+	print '20170320'
+调用now函数，不仅会运行now函数本身，还会在运行now函数之前打印一行日志：
+>>>now()
+call now()
+20170320
+把@log放到now函数的定义处，相当于执行了语句：
+now = log(now)
+所以这个顺序是 先执行log(now)，然后返回wrapper，打印了日志，紧接着又返回了now函数，执行了它。
+但是现在的装饰器还不完整因为现在经过装饰器装饰之后的函数，它们的__name__已经从原来的now变成了wrapper：
+>>>now.__name__
+'wrapper'
+因为返回的那个wrapper()函数名字就是‘wrapper’，所以，需要把原始函数的__name__等属性复制到wrapper()函数中，否则，有些依赖函数签名的代码执行就会出错。不用写wrapper.__name__ = func.__name__这样的代码，python内置的functools.wraps就是干这个事的，所以一个完整的装饰器的写法如下：
+import functools
+def log(func):
+	@functools.wraps(func)
+	def wrapper(*args, **kw):
+		print 'call %s():'%func.__name__
+		return func(*args, **kw)
+	return wrapper
+在wrapper函数前面加上@functools.wraps(func)即可。
+
+41.偏函数：functools.partial()。它的作用就是把一个函数的某些参数给固定住（也就是设置默认值），返回一个新的函数。迪欧用这个新的函数会简单。
+example:
+int()函数可以把字符串转换为整数，当仅传入字符串时，int()函数默认按十进制转换，但int()函数还额外提供了base参数，默认值为10。如果传入base参数，就可以做N进制转换了。
+>>>int('12345', base=8)
+5349
+>>>int('12345', 16)
+74565
+functools.partial就是帮我们创建一个偏函数：
+>>>import functools
+>>>int2 = functools.partial(int, base=2)
+>>>int2('1000000')
+64
+也可以在调用int2时传入其他值：
+>>>int2('1000000', base=10)
+1000000
+创建偏函数时，实际上可以接受函数对象、*args和**kw这三个参数，当传入：
+int2 = functools.partial(int, base=2)
+实际上固定了int()函数的关键字参数base，也就是：
+int2('10010')
+相当于：kw = {base:2}
+int('10010', **kw)
+当传入：max2 = functools.partial(max, 10)
+实际上会把10作为*args的一部分自动加到左边，也就是：
+max2(5,6,7)
+相当于：args = (10,5,6,7)
+max(*args)
+
+42.__future__ ：这个模块是把下一个版本的特性导入到当前版本，这样我们就可以在当前版本中测试一些新版本的特性。for example：
+在python2.x中，对于除法有两种情况，如果是整数相除，结果仍是整数，余数会被扔掉，这种除法叫做“地板除”：
+>>>10/3
+3
+要做精确除法，必须把其中一个数变成浮点数：
+>>>10.0/3
+3.333333333333333335
+而在python3.x中，所有除法都是精确除法，地板除用//表示：
+$ python3
+Python 3.3.2 (default, Jan 22 2014, 09:54:40) 
+[GCC 4.2.1 Compatible Apple LLVM 5.0 (clang-500.2.79)] on darwin
+Type "help", "copyright", "credits" or "license" for more information.
+>>> 10 / 3
+3.3333333333333335
+>>> 10 // 3
+3
+如果想在python2.7的代码中直接使用python3.x的除法，可以通过__future__模块的division实现：
+>>>import division from __future__
+>>>print '10/3 = ',10/3
+10/3 = 3.33333333333333333
+>>>print '10.0/3 = ',10.0/3
+10.0/3 = 3.3333333333333333333
+print '10//3 = ',10//3
+10//3 = 3
+
+43.dir():如果要获得一个对象的所有属性和方法，可以使用dir()函数，它返回一个包含字符串的list，比如，获得一个str对象的所有属性和方法：
+>>> dir('ABC')
+['__add__', '__class__', '__contains__', '__delattr__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__getitem__', '__getnewargs__', '__getslice__', '__gt__', '__hash__', '__init__', '__le__', '__len__', '__lt__', '__mod__', '__mul__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__rmod__', '__rmul__', '__setattr__', '__sizeof__', '__str__', '__subclasshook__', '_formatter_field_name_split', '_formatter_parser', 'capitalize', 'center', 'count', 'decode', 'encode', 'endswith', 'expandtabs', 'find', 'format', 'index', 'isalnum', 'isalpha', 'isdigit', 'islower', 'isspace', 'istitle', 'isupper', 'join', 'ljust', 'lower', 'lstrip', 'partition', 'replace', 'rfind', 'rindex', 'rjust', 'rpartition', 'rsplit', 'rstrip', 'split', 'splitlines', 'startswith', 'strip', 'swapcase', 'title', 'translate', 'upper', 'zfill']
+
+44.MethodType: 当我们定义了一个class，创建了一个class实例后，我们可以给该实例绑定任何属性和方法，这就是动态语言的灵活性。
+MethodType()函数就是给实例绑定方法的：
+>>>import MethodType from types
+>>>class Student(object):
+...		pass
+...
+>>>def set_age(self, age):
+...		self.age = age
+...
+>>>s = Student()
+>>>s.set_age = MethodType(set_age, s, Student)
+>>>s.set_age(25)
+>>>s.age
+25
+但是，给一个实例绑定的方法，对另一个实例是不起作用的：
+>>>s2 = Student()
+>>>s2.set_age(25)
+Traceback (most recent call list):
+。。。报错
+为了给所有实例都绑定方法，可以给class绑定方法：
+>>>def set_score(self, score):
+...		self.score = score
+...
+Student.set_score = MethodType(set_score, None, Student)
+给class绑定方法后，所有实例均可调用。
+
+45.__slots__: 这是一个特殊变量，用于限制class的属性，比如，现在只允许对student实例添加name和age属性，python允许在定义class的时候定义一个特殊变量__slots__变量，来限制该class能添加的属性：
+>>>class Student(object):
+...		__slots__ = ('name', 'age')#用tuple定义允许绑定的属性名称
+...
+>>>s = Student()
+>>>s.name = 'MiLei'
+>>>s.age = 26
+>>>s.score = 100
+报错
+使用__slots__要注意，__slots__定义的属性仅对当前类起作用，对继承的子类是起不了作用的。除非在子类中也定义__slots__，这样，子类允许定义的属性就是自身的__slots__加上父类的__slots__。
+
+46.@property:这是一个负责把一个方法变成属性调用的装饰器。
+我们都知道，在一个class中，一个属性可能对参数有限制，如果一个属性对参数有限制的话，我们就不能随意的给参数了，比如我们队score赋值，其实它本身想要的范围是1~100，如果我们给他一个999也是可以赋值的，想解决这个问题，可以通过增加一个set方法来设置score的值，并且检查是否符合要求，再通过一个get方法来获取这个值，但是这样做会让调用方法变得复杂。想要像调用属性那样调用方法，就要用到@property这个装饰器了:
+class Student(object):
+	@property
+	def score(self):
+		return self._score
+
+	@score.setter
+	def score(self, value):
+		if not isinstance(value, int):
+			raise ValueError
+		if value < 0 or value > 100:
+			raise ValueError
+		self._score = value
+把一个get方法变成属性，只需要添上@property就可以了，此时，@property本身又创建了另一个装饰器@score.setter，负责把一个setter方法变成属性赋值，于是，我们就拥有一个可控的属性操作了：
+>>>s = Student()
+>>>s.score = 60
+>>>s.score
+60
+>>>s.score = 999
+ValueError
+看到这个装饰器，我们在对实例属性操作的时候，就知道该属性很可能不是直接暴露的，而是通过get和set方法来实现的。
+如果用到了这个装饰器，我们可以把set方法看成只写，get方法看成只读。如果对于一个属性我们需要对它传参然后验证参数以后再获得它，就可以把set和get方法都加上，如果只需要获得这个值，不需要传参，就可以只加@property这一个装饰器。
+
+47.多重继承：举个栗子：
+加入有个Animal类，现在实现Dog、蝙蝠、鹦鹉、鸵鸟的层次结构，如果按照不如动物和鸟类归类，是这样的类层次：
+        Mammal→ Dog
+      ↗      → Bat
+Animal
+      ↘Bird → Parrot
+             → Ostrich
+如果按照能飞和能跑归类的话：
+        Runnable→ Dog
+      ↗        → Ostrich
+Animal
+      ↘Flyable → Parrot
+                → Bat
+如果把这两个层次都包含进来：
+        Mammal→ Mrun → Dog
+      ↗      → MFly → Bat
+Animal
+      ↘Bird → BFly → Parrot
+             → BRun → Ostrich
+如果在增加几层分类的话，累的数量会呈指数增长，这样，设计就不合理了，正确的做法是采用多重继承：
+class Animal(object):
+	pass
+class Runnable(object):
+	def run(self):
+		peint('Running...')
+class Runnable(object):
+	def run(self):
+		peint('Flying...')
+class Mammal(Animal):
+	pass
+class Bird(Animal):
+	pass
+class Dog(Mammal, Runnable):
+	pass
+class Bat(Mammal, Flyable):
+	pass
+class Parrot(Bird, Flyable):
+	pass
+class Ostrich(Bird, Runnable):
+	pass
+通过多继承，一个子类就可以同时获得多个父类的所有功能
+这种继承关系设计通常称之为Mixin，这样一来，我们不需要复杂而庞大的继承链，只要选择组合不同的类的功能，就可以快速构造出所需的子类。
+
+48.使用type()创建类：
+首先定义函数：
+def fn(self, name='world'):
+	print('Hello, %s.' % name)
+创建Hell class
+Hello = type('Hello', (object,), dict(hello=fn))
+要创建一个class对象，type()函数依次传入3个参数：
+(1)class名称；
+(2)继承父类集合，注意，python支持多继承，如果只有一个父类，可以用tuple的单元素写法；
+(3)class的方法名称与函数绑定，这里我们把函数fn绑定到方法名hello上。
+
+49.元类：除了使用type()动态创建类以外，要控制类的创建行为，还可以使用metaclass。
+metaclass，直译为元类，简单的解释就是：当我们定义了类以后，就可以根据这个类创建出实例，所以。先定义类，然后创建实例。
+但如果我们想创建出类呢？那就必须根据metaclass创建出类，所以，先定义metaclass，然后创建类。连起来就是：先定义metaclass，就可以创建类，最后创建实例。
+
+50.错误处理：python内置了一套try...except...finally...的错误处理机制。
+在这一套机制中，如果执行时出错了，后续代码不会执行。直接跳转至错误处理代码，即except语句块，执行完except后，如果有finally语句块，则执行finally，至此，执行完毕。
+python所有的错误都是从BaseException类派生的，常见的错误类型和继承关系看这里：https://docs.python.org/2/library/exceptions.html#exception-hierarchy
+
+51，调试方法:(1)打print,简单粗暴，但是很麻烦，事后还得删除。(2)assert(断言)，assert n != 0, 'n is zero'。assert的意思是，表达式n != 0应该是True，否则，后面的代码就会出错，如果断言失败，assert语句本身就会抛出AssertionError。而且运行程序时可以用-O参数来关闭assert。(3)打log，把print替换为logging，logging不会跑出错误，而且可以输出到文件。而且还可以在import logging之后添加一行配置:logging.basicConfig(level=logging.INFO)来指定记录信息的级别，有debug、info、warning、error等几个级别，强度逐级递增(4)python的pdb调试器，让程序以单步方式运行，可以随时查看运行状态。比如一个a.py文件，运行程序时用python -m pdb a.py的方式来启动pdb。输入l来查看代码，输入n可以单步执行，输入p + 变量名来查看变量，q是结束(5)pdb.set_trace，也是用pdb方法，但不需要逐步执行，我们只需要import pdb，然后，在可能出错的地方放一个pdb.set_trace()，就可以设置一个断点，运行到断点时自动暂停并进入pdb调试环境，可以用p查看变量，c是继续执行(6)找一个有调试的功能的IDE，比如pycharm，打断点，单步执行，最方便。
+
+52.with语句：在读文件的时候，自动帮我们调用close()方法：
+with open('/path/to/file', 'r') as f:
+	print f.read()
+with open('/path/to/file', 'w') as f:
+	f.write('Hello, world!')
+	
+53.decode()：以二进制模式打开文件时，需要解码，比如GBK编码的文件：
+>>>f = open('/User/michael/gbk.txt', 'rb')
+>>>u = f.read().decode('gbk')
+>>>u
+u'\u6d4b\u8bd5'
+>>>print u
+测试
+如果每次都这么手动转换编码嫌费事，python还提供了一个codecs模块，帮我们在读文件时自动转换编码，直接读出unicode：
+import codecs
+with codecs.open('/User/michael/gbk.txt', 'gbk') as f:
+	f.read()
+
