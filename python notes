@@ -445,3 +445,229 @@ import codecs
 with codecs.open('/User/michael/gbk.txt', 'gbk') as f:
 	f.read()
 
+54.fork():创建进程的函数，和普通函数不一样，普通函数是调用一次返回一次，fork()函数是调用一次返回两次，因为系统自动把当前进程（称为父进程）复制一份（称为子进程），然后分别在父进程和子进程中返回。
+子进程永远返回0，父进程返回子进程的ID，因为一个父进程可以fork出很多子进程，所以父进程要记下每个子进程的ID，而子进程只需要调用getppid()就能得到父进程的ID
+fork()不能再window下使用，只能在linux/unix下运行。
+
+55.multiprocessing：windows下的多进程模块。multiprocessing模块提供了一个Process类来表示进程对象。
+from multiprocesing import process
+import os
+# 子进程要执行的代码
+def run_proc(name):
+    print 'Run child process %s (%s)...' % (name, os.getpid())
+
+if __name__=='__main__':
+    print 'Parent process %s.' % os.getpid()
+    p = Process(target=run_proc, args=('test',))
+    print 'Process will start.'
+    p.start()
+    p.join()
+    print 'Process end.'
+>>>执行结果为：
+Parent process 4524.
+Child process will start.
+Run child process test (7600)...
+Child process end.
+创建进程的类：Process([group [, target [, name [, args [, kwargs]]]]])，target表示调用对象，args表示调用对象的位置参数元组。kwargs表示调用对象的字典。Name为别名。Group实质上不使用。
+创建子进程时，只需要传入一个执行函数和函数的参数，创建一个Process实例，用start()方法启动，这样创建进程比fork()还要简单。join()方法可以等待子进程结束后再继续往下运行，通常用于进程间的同步
+
+56.线程池：multiprocessing.Pool。如果要启动大量的子进程，可以用进程池的方式批量创建子进程：
+from multiprocessing import Pool
+import os, time, random
+
+def long_time_task(name):
+    print 'Run task %s (%s)...' % (name, os.getpid())
+    start = time.time()
+    time.sleep(random.random() * 3)
+    end = time.time()
+    print 'Task %s runs %0.2f seconds.' % (name, (end - start))
+
+if __name__=='__main__':
+    print 'Parent process %s.' % os.getpid()
+    p = Pool()
+    for i in range(5):
+        p.apply_async(long_time_task, args=(i,))
+    print 'Waiting for all subprocesses done...'
+    p.close()
+    p.join()
+    print 'All subprocesses done.'
+>>>执行结果为；
+Parent process 4568.
+Waiting for all subprocesses done...
+Run task 0 (7848)...
+Run task 1 (6748)...
+Run task 2 (2080)...
+Run task 3 (6064)...
+Task 0 runs 0.12 seconds.
+Run task 4 (7848)...
+Task 1 runs 0.39 seconds.
+Task 2 runs 1.12 seconds.
+Task 4 runs 1.64 seconds.
+Task 3 runs 2.72 seconds.
+All subprocesses done.
+函数解释：apply_async(func[, args[, kwds[, callback]]]) 它是非阻塞，apply(func[, args[, kwds]])是阻塞的。
+close()，关闭pool，使其不再接受新的任务
+
+57.进程间通信：multiprocessing模块提供了Queue和Pipes等多种方式来交换数据。
+Queue：
+from multiprocessing import Process, Queue
+import os, time, random
+
+# 写数据进程执行的代码:
+def write(q):
+    for value in ['A', 'B', 'C']:
+        print 'Put %s to queue...' % value
+        q.put(value)
+        time.sleep(random.random())
+
+# 读数据进程执行的代码:
+def read(q):
+    while True:
+        value = q.get(True)
+        print 'Get %s from queue.' % value
+
+if __name__=='__main__':
+    # 父进程创建Queue，并传给各个子进程：
+    q = Queue()
+    pw = Process(target=write, args=(q,))
+    pr = Process(target=read, args=(q,))
+    # 启动子进程pw，写入:
+    pw.start()
+    # 启动子进程pr，读取:
+    pr.start()
+    # 等待pw结束:
+    pw.join()
+    # pr进程里是死循环，无法等待其结束，只能强行终止:
+    pr.terminate()
+>>>执行结果为
+Put A to queue...
+Get A from queue.
+Put B to queue...
+Get B from queue.
+Put C to queue...
+Get C from queue.
+
+58.多线程：python的标准库提供了两个模块：thread和threading，thread是低级模块，threading是高级模块，对thread进行了封装。绝大多数情况下，我们只需要使用threading这个高级模块
+启动一个线程就是把一个函数传入并创建Thread实例，然后调用start()开始执行：
+import time, threading
+
+# 新线程执行的代码:
+def loop():
+    print 'thread %s is running...' % threading.current_thread().name
+    n = 0
+    while n < 5:
+        n = n + 1
+        print 'thread %s >>> %s' % (threading.current_thread().name, n)
+        time.sleep(1)
+    print 'thread %s ended.' % threading.current_thread().name
+
+print 'thread %s is running...' % threading.current_thread().name
+t = threading.Thread(target=loop, name='LoopThread')
+t.start()
+t.join()
+print 'thread %s ended.' % threading.current_thread().name
+>>>执行结果为：
+thread MainThread is running...
+thread LoopThread is running...
+thread LoopThread >>> 1
+thread LoopThread >>> 2
+thread LoopThread >>> 3
+thread LoopThread >>> 4
+thread LoopThread >>> 5
+thread LoopThread ended.
+thread MainThread ended.
+由于任何进程默认就会启动一个线程，我们把该线程称为主线程，主线程又可以启动新的线程，Python的threading模块有个current_thread()函数，永远返回当前线程的实例。主线程实例的名字叫MainThread，子线程的名字在创建的时候指定，我们用LoopThread命名子线程。名字仅仅在打印时用来显示，完全没有其他意义，如果不起名字python就自动给线程命名为Thread-1,Thread-2...
+
+59.lock:线程锁。多线程和多进程最大的不同在于，多进程中，同一个变量，各自有一份拷贝存在于每个进程中，互不影响，而多线程中，所有变量都由所有线程共享，所以，任何一个变量都可以被任何一个线程修改，因此，线程之间共享数据最大的危险在于多个线程同时改一个变量，吧内容改乱了。为了防止这一情况，就要给调用的函数上一把锁，当某个线程执行该函数时，我们说，该线程因为获得了锁，因此其他线程不能同时执行该函数，只能等待，知道锁被释放后，获得该锁以后才能改，由于锁只有一个，无论多少线程，同一时刻最多只有一个线程持有锁，所以，不会造成修改冲突。创建一个锁就是通过threading.Lock()来实现的：
+balance = 0
+lock = threading.Lock()
+
+def run_thread(n):
+    for i in range(100000):
+        # 先要获取锁:
+        lock.acquire()
+        try:
+            # 放心地改吧:
+            change_it(n)
+        finally:
+            # 改完了一定要释放锁:
+            lock.release()
+获得锁的线程已定要释放锁，否则别的线程拿不到锁就会变成死线程，一直等下去，所以我们用try...finally来确保锁一定会被释放
+锁的坏处也很多，首先阻止了多线程并发执行，包含锁的某段代码实际上只能以单线程模式执行，小驴大大降低了，其次，由于可以存在多个线程锁，不同的线程持有不同的锁，并试图获取对方持有的锁时，可能会造成死锁，导致多个线程全部挂起，既不能执行也无法结束，只能靠操作系统强行终止。
+
+60.GIL：python解释器执行代码时，有一个GIL锁：Global Interpreter Lock,任何python线程执行前，必须先获得GIL锁，然后每执行100条字节码，解释器就自动释放GIL锁，让别的线程有机会执行。这个GIL全局锁实际上把所有线程的执行代码都上了锁，所以，多线程在python中只能交替执行。
+
+61.ThreadLocal:举个栗子：
+import threading
+
+# 创建全局ThreadLocal对象:
+local_school = threading.local()
+
+def process_student():
+    print 'Hello, %s (in %s)' % (local_school.student, threading.current_thread().name)
+
+def process_thread(name):
+    # 绑定ThreadLocal的student:
+    local_school.student = name
+    process_student()
+
+t1 = threading.Thread(target= process_thread, args=('Alice',), name='Thread-A')
+t2 = threading.Thread(target= process_thread, args=('Bob',), name='Thread-B')
+t1.start()
+t2.start()
+t1.join()
+t2.join()
+>>>执行结果为：
+Hello, Alice (in Thread-A)
+Hello, Bob (in Thread-B)
+全局变量local_school就是一个ThreadLocal对象，每个Thread对它都可以读写student属性，但互不影响。你可以把local_school看成全局变量，但每个属性如local_school.student都是线程的局部变量，可以任意读写而互不干扰，也不用管理锁的问题，TreadLocal内部会处理。
+ThreadLocal最常用的地方就是为每个线程绑定一个数据库连接，HTTP请求，用户身份信息等，这样一个线程的所有调用到的处理函数都可以非常方便的访问这些资源。
+
+62.分布式进程：python的multiprocessing模块不但支持多进程，其中managers子模块还支持把多进程分不到多台机器上一个服务进程可以作为调度者，将任务分布到其他多个进程中，依靠网络。由于managers模块封装很好，不必了解网络通信的细节，就可以很容易的编写分布式多进程程序。
+
+63.常用内建模块：
+collections是python内建的一个集合模块，提供了许多有用的集合类
+(1)namedtuple是一个函数，它用来创建一个自定义的tuple对象，并且规定了tuple元素的个数，并可以用属性而不是索引来引用tuple的某个元素：
+定义一个坐标：
+>>>from collections import namedtuple
+>>>Point = namedtuple('Point', ['x', 'y'])
+>>>p = Point(1,2)
+>>>p.x
+1
+>>>p.y
+2
+>>>Circle = namedtuple('Circle', ['x', 'y', 'r'])
+(2)deque,使用list存储数据时，按索引访问元素很快，但是出入和删除元素就慢了，deque是为了搞笑实现插入和删除操作双向列表，适合用于队列和栈：
+>>>from collections import deque
+>>>q = deque(['a', 'b', 'c'])
+>>>q.append('x')
+>>>q.appendleft('y')
+>>>q
+deque(['y', 'a', 'b', 'c', 'x'])
+deque除了实现list的append和pop外，还支持appendleft和popleft，这样就可以非常高效的往头部添加或删除元素了
+(3)defaultdict,使用dict，如果引用key不存在，就会抛出KeyError。如果希望Key不存在时，返回默认值，就可以用defaultdict：
+>>>from collections import defaultdict
+>>>dd = defaultdict(lambda:'N/A')
+dd['key1'] = 'abc'
+dd['key1']
+'abc'
+dd['key2']
+'N/A'
+(4)OrderedDict,使用dict时，key无序。在对dict迭代时，我们无法确定key的顺序。如果保持key的顺序，可以用OrderedDict：
+>>>from collections import OrderedDict
+>>>d = dict([('a',1),('b',2),('c',3)])
+>>>d #dict的key是无序的
+{'a':1, 'c':3, 'b':2}
+>>>od = OrderedDict([('a',1),('b',2),('c',3)])
+>>>od #OrderedDict的key是有序的
+OrderedDict([('a',1),('b',2),('c',3)])
+注意，OrderedDict的key会按照插入顺序排列，不是key本身排序
+OrderedDict可以实现一个FIFO（先进先出）的dict，当容量超出限制时，先删除最早添加的key
+(5)Counter，是一个简单的计数器，例如统计字符出现的个数
+>>>from collections import Counter
+>>>c = Counter()
+>>for ch in 'programming':
+...		c[ch] = c[ch] + 1
+...
+>>>c
+Counter({'g': 2, 'm': 2, 'r': 2, 'a': 1, 'i': 1, 'o': 1, 'n': 1, 'p': 1})
