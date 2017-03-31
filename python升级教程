@@ -1,0 +1,80 @@
+[root@wangyuelou ~]# python
+   1:  
+   3: Python 2.4.3 (#1, May  5 2011, 16:39:10) 
+   4: [GCC 4.1.2 20080704 (Red Hat 4.1.2-50)] on linux2
+   5: Type "help", "copyright", "credits" or "license" for more information.
+   6: >;>> 
+   7: [root@wangyuelou ~]# 
+下载新版本的python
+1: [root@wangyuelou ~]# wget http://python.org/ftp/python/2.7.2/Python-2.7.2.tgz
+ 
+解压缩 以及编译
+   1: [root@wangyuelou ~]# tar xvf Python-2.7.2.tar.bz2 
+   2: [root@wangyuelou Python-2.7.2]# ./configure --prefix=/usr/local/python27
+   3: [root@wangyuelou Python-2.7.2]# make
+   4: [root@wangyuelou Python-2.7.2]# make install
+   5: [root@wangyuelou Python-2.7.2]# ls /usr/local/python27/ -al
+   6: total 28
+   7: drwxr-xr-x  6 root root 4096 Jul 14 00:21 .
+   8: drwxr-xr-x 20 root root 4096 Jul 14 00:17 ..
+   9: drwxr-xr-x  2 root root 4096 Jul 14 00:21 bin
+  10: drwxr-xr-x  3 root root 4096 Jul 14 00:21 include
+  11: drwxr-xr-x  4 root root 4096 Jul 14 00:21 lib
+  12: drwxr-xr-x  3 root root 4096 Jul 14 00:21 share
+覆盖原来的python链接
+   1: [root@wangyuelou Python-2.7.2]# mv /usr/bin/python /usr/bin/python_old
+   2: [root@wangyuelou Python-2.7.2]# ln -s /usr/local/python27/bin/python /usr/bin/
+   3: [root@wangyuelou Python-2.7.2]# python
+   4: Python 2.7.2 (default, Jul 14 2011, 00:20:14) 
+   5: [GCC 4.1.2 20080704 (Red Hat 4.1.2-50)] on linux2
+   6: Type "help", "copyright", "credits" or "license" for more information.
+   7: >>> 
+此处已经可以正常使用python2.7了
+但是因为yum是使用的2.4的版本来用的，所以 还需要修改一下
+   1: [root@wangyuelou ~]# yum 
+   2: There was a problem importing one of the Python modules
+   3: required to run yum. The error leading to this problem was:
+   4:  
+   5:    No module named yum
+   6:  
+   7: Please install a package which provides this module, or
+   8: verify that the module is installed correctly.
+   9:  
+  10: It's possible that the above module doesn't match the
+  11: current version of Python, which is:
+  12: 2.7.2 (default, Jul 14 2011, 00:20:14) 
+  13: [GCC 4.1.2 20080704 (Red Hat 4.1.2-50)]
+  14:  
+  15: If you cannot solve this problem yourself, please go to 
+  16: the yum faq at:
+  17:   http://wiki.linux.duke.edu/YumFaq
+  18:   
+  19:  
+  20: [root@wangyuelou Python-2.7.2]# vim /usr/bin/yum 
+  21:  
+  22: #!/usr/bin/python   #修改此处为2.4的位置
+  23: [root@wangyuelou ~]# vim /usr/bin/yum 
+  24:  
+  25: #!/usr/bin/python2.4
+  26: [root@wangyuelou ~]# yum 
+  27: Loaded plugins: fastestmirror
+  28: You need to give some command
+  29: usage: yum [options] COMMAND
+  30:  
+  31: List of Commands:
+  32:  
+  33: check-update   Check for available package updates
+  34: clean          Remove cached data
+  35: deplist        List a package's dependencies
+  36: downgrade      downgrade a package
+  37: erase          Remove a package or packages from your system
+  38: groupinfo      Display details about a package group
+  39: groupinstall   Install the packages in a group on your system
+  40: grouplist      List available package groups
+  41: groupremove    Remove the packages in a group from your system
+  42: help           Display a helpful usage message
+  43: info           Display details about a package or group of packages
+  44: install        Install a package or packages on your system
+  45: list           List a package or groups of packages
+  46: localinstall   Install a local RPM
+yum 又可以使用了
