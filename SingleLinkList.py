@@ -18,9 +18,8 @@ class SingleLinkedList(object):
         self.root = None
         #self.size = 0
 
-    #在链表尾部添加新节点，底层调用addNode方法即可
+    #在链表尾部添加新节点
     def append(self, value):
-        #self.addNode(data = value)
         item = None
         if isinstance(value, Node):
             item = value
@@ -58,7 +57,7 @@ class SingleLinkedList(object):
             #如果index正好比当前链表长度大1，则添加在链表的尾部即可
             self.append(value)
         else:
-            #如此，在链表中部添加新的节点，直接进行添加即可。需要使用计数器来维护插入未知
+            #如果在链表中部添加新的节点，直接进行添加即可。
             counter = 2
             pre = self.root
             cursor = self.root._next
@@ -206,10 +205,8 @@ class SingleLinkedList(object):
             return
         pre = self.root
         cursor = pre._next
-
         #为字典赋值
         temp = self.root._next
-
         while temp != None:
             dic[str(temp.data)] = 0
             temp = temp._next
@@ -244,7 +241,6 @@ class SingleLinkedList(object):
                 cursor = cursor._next
                 counter += 1
 
-
     #获取单链表的大小
     def mysize(self):
         counter = 0
@@ -266,8 +262,6 @@ class SingleLinkedList(object):
             while cursor != None:
                 print cursor.data
                 cursor = cursor._next
-
-
 
 if __name__ == '__main__':
     # 创建一个链表对象
