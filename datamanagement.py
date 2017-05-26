@@ -17,9 +17,9 @@ import calendar
 ETLDIR = 'ETL'
 DATADIR = 'DATA'
 DIRDELI = '/'
-LOGFILEDIR = '/ETL/DATA/meari/DATA/LOG'
-TKTERRORDIR = '/ETL/DATA/meari/DATA/fail/tkterror'
-BIDTDATADIR = '/ETL/DATA/meari/DATA/prod_data/bidt_data/'
+LOGFILEDIR = '/ETL/LOG'
+TKTERRORDIR = '/ETL/DATA/fail/tkterror'
+BIDTDATADIR = '/ETL/DATA/prod_data/bidt_data/'
 ETLDATAEXE = '/ETL/bin/EtlDate.exe'
 SYSTEM = '{{SYSTEMNAME}}'
 SYSTEM8DATE = '{{SYSTEMNAME}}/{{YYYYMMDD}}'
@@ -30,7 +30,7 @@ DATE6 = '{{YYYYMM}}'
 DATE4 = '{{YYMM}}'
 HDFSDIR = '/data/GP/ETL_BAK'
 CONSIDER = 0
-configfile = '/ETL/DATA/meari/config.txt'
+configfile = '/ETL/DATA/temp/mlei/config.txt'
 ISOTIMEFORMAT= '%Y-%m-%d %X'
 todaystr = sys.argv[1]
 
@@ -161,6 +161,7 @@ def havesystemname(line):
                                         if status == 0 and output == '':
                                             print '[%s] 压缩文件%s成功！' % (nowtime(), filename)
                                         else:
+                                            print nowtime() + ' ' + output
                                             print '[%s] 压缩文件%s失败！' % (nowtime(), filename)
                         elif int(datedir) <= int(deletedate):
                             deletepath = dirpath + systemname + DIRDELI + datedir
@@ -174,15 +175,27 @@ def havesystemname(line):
                             if int(t) > int(deletedate):
                                 pass
                             elif int(t) <= int(deletedate):
-                                commands.getstatusoutput('export HADOOP_USER_NAME=BDATA_GP_ADM')
-                                commands.getstatusoutput('hdfs dfs -mkdir %s%s'%(HDFSDIR, deletepath))
-                                hdfsdir = '%s%s'%(HDFSDIR, mkdirdeletepath)
-                                commands.getstatusoutput('hdfs dfs -put %s %s'%(deletepath, hdfsdir))
-                                (status, output) = commands.getstatusoutput('rm -r %s' % deletepath)
+                                os.system('export HADOOP_USER_NAME=BDATA_GP_ADM')
+                                (status, output) = commands.getstatusoutput('hdfs dfs -mkdir -p %s%s'%(HDFSDIR, deletepath))
                                 if status == 0 and output == '':
-                                    print '[%s] 删除文件%s成功！' % (nowtime(), deletepath)
+                                    print '[%s] 创建目录%s成功！' % (nowtime(), deletepath)
                                 else:
-                                    print '[%s] 删除文件%s失败！' % (nowtime(), deletepath)
+                                    print nowtime() + ' ' + output
+                                    print '[%s] 创建目录%s失败！' % (nowtime(), deletepath)
+                                hdfsdir = '%s%s'%(HDFSDIR, mkdirdeletepath)
+                                (status, output) = commands.getstatusoutput('hdfs dfs -put %s %s'%(deletepath, hdfsdir))
+                                if status == 0 and output == '':
+                                    print '[%s] put目录%s成功！' % (nowtime(), deletepath)
+                                    (status, output) = commands.getstatusoutput('rm -r %s' % deletepath)
+                                    if status == 0 and output == '':
+                                        print '[%s] 删除文件%s成功！' % (nowtime(), deletepath)
+                                    else:
+                                        print nowtime() + ' ' + output
+                                        print '[%s] 删除文件%s失败！' % (nowtime(), deletepath)
+                                else:
+                                    print nowtime() + ' ' + output
+                                    print '[%s] put目录%s失败！' % (nowtime(), deletepath)
+
                         else:
                             print '[' + nowtime() + '] ' + dirpath + systemname + DIRDELI + datedir + '暂时不压缩或者删除！'
                     elif datedir.isdigit() and len(datedir) == 6:
@@ -200,6 +213,7 @@ def havesystemname(line):
                                         if status == 0 and output == '':
                                             print '[%s] 压缩文件%s成功！' % (nowtime(), filename)
                                         else:
+                                            print nowtime() + ' ' + output
                                             print '[%s] 压缩文件%s失败！' % (nowtime(), filename)
                         elif int(datedir) <= int(deletedate):
                             deletepath = dirpath + systemname + DIRDELI + datedir
@@ -213,15 +227,27 @@ def havesystemname(line):
                             if int(t) > int(deletedate):
                                 pass
                             elif int(t) <= int(deletedate):
-                                commands.getstatusoutput('export HADOOP_USER_NAME=BDATA_GP_ADM')
-                                commands.getstatusoutput('hdfs dfs -mkdir %s%s' % (HDFSDIR, deletepath))
-                                hdfsdir = '%s%s' % (HDFSDIR, mkdirdeletepath)
-                                commands.getstatusoutput('hdfs dfs -put %s %s' % (deletepath, hdfsdir))
-                                (status, output) = commands.getstatusoutput('rm -r %s' % deletepath)
+                                os.system('export HADOOP_USER_NAME=BDATA_GP_ADM')
+                                (status, output) = commands.getstatusoutput('hdfs dfs -mkdir -p %s%s' % (HDFSDIR, deletepath))
                                 if status == 0 and output == '':
-                                    print '[%s] 删除文件%s成功！' % (nowtime(), deletepath)
+                                    print '[%s] 创建目录%s成功！' % (nowtime(), deletepath)
                                 else:
-                                    print '[%s] 删除文件%s失败！' % (nowtime(), deletepath)
+                                    print nowtime() + ' ' + output
+                                    print '[%s] 创建目录%s失败！' % (nowtime(), deletepath)
+                                hdfsdir = '%s%s' % (HDFSDIR, mkdirdeletepath)
+                                (status, output) = commands.getstatusoutput('hdfs dfs -put %s %s' % (deletepath, hdfsdir))
+                                if status == 0 and output == '':
+                                    print '[%s] put目录%s成功！' % (nowtime(), deletepath)
+                                    (status, output) = commands.getstatusoutput('rm -r %s' % deletepath)
+                                    if status == 0 and output == '':
+                                        print '[%s] 删除文件%s成功！' % (nowtime(), deletepath)
+                                    else:
+                                        print nowtime() + ' ' + output
+                                        print '[%s] 删除文件%s失败！' % (nowtime(), deletepath)
+                                else:
+                                    print nowtime() + ' ' + output
+                                    print '[%s] put目录%s失败！' % (nowtime(), deletepath)
+
                         else:
                             print '[' + nowtime() + '] ' + dirpath + systemname + DIRDELI + datedir + '暂时不压缩或者删除！'
                     elif datedir.isdigit() and len(datedir) == 4:
@@ -239,6 +265,7 @@ def havesystemname(line):
                                         if status == 0 and output == '':
                                             print '[%s] 压缩文件%s成功！' % (nowtime(), filename)
                                         else:
+                                            print nowtime() + ' ' + output
                                             print '[%s] 压缩文件%s失败！' % (nowtime(), filename)
                         elif int(datedir) <= int(deletedate):
                             deletepath = dirpath + systemname + DIRDELI + datedir
@@ -252,15 +279,27 @@ def havesystemname(line):
                             if int(t) > int(deletedate):
                                 pass
                             elif int(t) <= int(deletedate):
-                                commands.getstatusoutput('export HADOOP_USER_NAME=BDATA_GP_ADM')
-                                commands.getstatusoutput('hdfs dfs -mkdir %s%s' % (HDFSDIR, deletepath))
-                                hdfsdir = '%s%s' % (HDFSDIR, mkdirdeletepath)
-                                commands.getstatusoutput('hdfs dfs -put %s %s' % (deletepath, hdfsdir))
-                                (status, output) = commands.getstatusoutput('rm -r %s' % deletepath)
+                                os.system('export HADOOP_USER_NAME=BDATA_GP_ADM')
+                                (status, output) = commands.getstatusoutput('hdfs dfs -mkdir -p %s%s' % (HDFSDIR, deletepath))
                                 if status == 0 and output == '':
-                                    print '[%s] 删除文件%s成功！' % (nowtime(), deletepath)
+                                    print '[%s] 创建目录%s成功！' % (nowtime(), deletepath)
                                 else:
-                                    print '[%s] 删除文件%s失败！' % (nowtime(), deletepath)
+                                    print nowtime() + ' ' + output
+                                    print '[%s] 创建目录%s失败！' % (nowtime(), deletepath)
+                                hdfsdir = '%s%s' % (HDFSDIR, mkdirdeletepath)
+                                (status, output) = commands.getstatusoutput('hdfs dfs -put %s %s' % (deletepath, hdfsdir))
+                                if status == 0 and output == '':
+                                    print '[%s] put目录%s成功！' % (nowtime(), deletepath)
+                                    (status, output) = commands.getstatusoutput('rm -r %s' % deletepath)
+                                    if status == 0 and output == '':
+                                        print '[%s] 删除文件%s成功！' % (nowtime(), deletepath)
+                                    else:
+                                        print nowtime() + ' ' + output
+                                        print '[%s] 删除文件%s失败！' % (nowtime(), deletepath)
+                                else:
+                                    print nowtime() + ' ' + output
+                                    print '[%s] put目录%s失败！' % (nowtime(), deletepath)
+
                         else:
                             print '[' + nowtime() + '] ' + dirpath + systemname + DIRDELI + datedir + '暂时不压缩或者删除！'
 
@@ -288,6 +327,7 @@ def have4or6date(dirpath, slicehead, deletemon, keepmon, switchs):
                                 if status == 0 and output == '':
                                     print '[%s] 压缩文件%s成功！' % (nowtime(), filename)
                                 else:
+                                    print nowtime() + ' ' + output
                                     print '[%s] 压缩文件%s失败！' % (nowtime(), filename)
                 elif int(datedir[3:]) <= int(deletedatemon):
                     deletepath = dirpath[0:-3] + datedir
@@ -301,15 +341,27 @@ def have4or6date(dirpath, slicehead, deletemon, keepmon, switchs):
                     if int(t) > int(deletedatemon):
                         pass
                     elif int(t) <= int(deletedatemon):
-                        commands.getstatusoutput('export HADOOP_USER_NAME=BDATA_GP_ADM')
-                        commands.getstatusoutput('hdfs dfs -mkdir %s%s' % (HDFSDIR, deletepath))
-                        hdfsdir = '%s%s' % (HDFSDIR, mkdirdeletepath)
-                        commands.getstatusoutput('hdfs dfs -put %s %s' % (deletepath, hdfsdir))
-                        (status, output) = commands.getstatusoutput('rm -r %s' % deletepath)
+                        os.system('export HADOOP_USER_NAME=BDATA_GP_ADM')
+                        (status, output) = commands.getstatusoutput('hdfs dfs -mkdir -p %s%s' % (HDFSDIR, deletepath))
                         if status == 0 and output == '':
-                            print '[%s] 删除文件%s成功！' % (nowtime(), deletepath)
+                            print '[%s] 创建目录%s成功！' % (nowtime(), deletepath)
                         else:
-                            print '[%s] 删除文件%s失败！' % (nowtime(), deletepath)
+                            print nowtime() + ' ' + output
+                            print '[%s] 创建目录%s失败！' % (nowtime(), deletepath)
+                        hdfsdir = '%s%s' % (HDFSDIR, mkdirdeletepath)
+                        (status, output) = commands.getstatusoutput('hdfs dfs -put %s %s' % (deletepath, hdfsdir))
+                        if status == 0 and output == '':
+                            print '[%s] put目录%s成功！' % (nowtime(), deletepath)
+                            (status, output) = commands.getstatusoutput('rm -r %s' % deletepath)
+                            if status == 0 and output == '':
+                                print '[%s] 删除文件%s成功！' % (nowtime(), deletepath)
+                            else:
+                                print nowtime() + ' ' + output
+                                print '[%s] 删除文件%s失败！' % (nowtime(), deletepath)
+                        else:
+                            print nowtime() + ' ' + output
+                            print '[%s] put目录%s失败！' % (nowtime(), deletepath)
+
                 else:
                     print '[' + nowtime() + '] ' + dirpath[0:-3] + datedir + '暂时不压缩或者删除！'
     elif 'all_midt' in dirpath or 'bidt/' in dirpath or 'sond' in dirpath:
@@ -329,6 +381,7 @@ def have4or6date(dirpath, slicehead, deletemon, keepmon, switchs):
                                     if status == 0 and output == '':
                                         print '[%s] 压缩文件%s成功！' % (nowtime(), filename)
                                     else:
+                                        print nowtime() + ' ' + output
                                         print '[%s] 压缩文件%s失败！' % (nowtime(), filename)
                     elif int(datedir) <= int(deletedatemon):
                         deletepath = dirpath + datedir
@@ -342,15 +395,27 @@ def have4or6date(dirpath, slicehead, deletemon, keepmon, switchs):
                         if int(t) > int(deletedatemon):
                             pass
                         elif int(t) <= int(deletedatemon):
-                            commands.getstatusoutput('export HADOOP_USER_NAME=BDATA_GP_ADM')
-                            commands.getstatusoutput('hdfs dfs -mkdir %s%s' % (HDFSDIR, deletepath))
-                            hdfsdir = '%s%s' % (HDFSDIR, mkdirdeletepath)
-                            commands.getstatusoutput('hdfs dfs -put %s %s' % (deletepath, hdfsdir))
-                            (status, output) = commands.getstatusoutput('rm -r %s' % deletepath)
+                            os.system('export HADOOP_USER_NAME=BDATA_GP_ADM')
+                            (status, output) = commands.getstatusoutput('hdfs dfs -mkdir -p %s%s' % (HDFSDIR, deletepath))
                             if status == 0 and output == '':
-                                print '[%s] 删除文件%s成功！' % (nowtime(), deletepath)
+                                print '[%s] 创建目录%s成功！' % (nowtime(), deletepath)
                             else:
-                                print '[%s] 删除文件%s失败！' % (nowtime(), deletepath)
+                                print nowtime() + ' ' + output
+                                print '[%s] 创建目录%s失败！' % (nowtime(), deletepath)
+                            hdfsdir = '%s%s' % (HDFSDIR, mkdirdeletepath)
+                            (status, output) = commands.getstatusoutput('hdfs dfs -put %s %s' % (deletepath, hdfsdir))
+                            if status == 0 and output == '':
+                                print '[%s] put目录%s成功！' % (nowtime(), deletepath)
+                                (status, output) = commands.getstatusoutput('rm -r %s' % deletepath)
+                                if status == 0 and output == '':
+                                    print '[%s] 删除文件%s成功！' % (nowtime(), deletepath)
+                                else:
+                                    print nowtime() + ' ' + output
+                                    print '[%s] 删除文件%s失败！' % (nowtime(), deletepath)
+                            else:
+                                print nowtime() + ' ' + output
+                                print '[%s] put目录%s失败！' % (nowtime(), deletepath)
+
                     else:
                         print '[' + nowtime() + '] ' + dirpath + datedir + '暂时不压缩或者删除！'
 
@@ -369,6 +434,7 @@ def bidt_data(dirpath, befordays, gzipdays, switchs):
             if status == 0 and output == '':
                 print '[%s] 压缩目录%s%s成功！' % (nowtime(), dirpath, dirs)
             else:
+                print nowtime() + ' ' + output
                 print '[%s] 压缩目录%s%s失败！可能该目录下的文件就是压缩文件！' % (nowtime(), dirpath, dirs)
         elif int(dirs) <= int(deletedate):
             deletepath = dirpath + dirs
@@ -382,15 +448,27 @@ def bidt_data(dirpath, befordays, gzipdays, switchs):
             if int(t) > int(deletedate):
                 pass
             elif int(t) <= int(deletedate):
-                commands.getstatusoutput('export HADOOP_USER_NAME=BDATA_GP_ADM')
-                commands.getstatusoutput('hdfs dfs -mkdir %s%s' % (HDFSDIR, deletepath))
-                hdfsdir = '%s%s' % (HDFSDIR, mkdirdeletepath)
-                commands.getstatusoutput('hdfs dfs -put %s %s' % (deletepath, hdfsdir))
-                (status, output) = commands.getstatusoutput('rm -r %s' % deletepath)
+                os.system('export HADOOP_USER_NAME=BDATA_GP_ADM')
+                (status, output) = commands.getstatusoutput('hdfs dfs -mkdir -p %s%s' % (HDFSDIR, deletepath))
                 if status == 0 and output == '':
-                    print '[%s] 删除文件%s成功！' % (nowtime(), deletepath)
+                    print '[%s] 创建目录%s成功！' % (nowtime(), deletepath)
                 else:
-                    print '[%s] 删除文件%s失败！' % (nowtime(), deletepath)
+                    print nowtime() + ' ' + output
+                    print '[%s] 创建目录%s失败！' % (nowtime(), deletepath)
+                hdfsdir = '%s%s' % (HDFSDIR, mkdirdeletepath)
+                (status, output) = commands.getstatusoutput('hdfs dfs -put %s %s' % (deletepath, hdfsdir))
+                if status == 0 and output == '':
+                    print '[%s] put目录%s成功！' % (nowtime(), deletepath)
+                    (status, output) = commands.getstatusoutput('rm -r %s' % deletepath)
+                    if status == 0 and output == '':
+                        print '[%s] 删除文件%s成功！' % (nowtime(), deletepath)
+                    else:
+                        print nowtime() + ' ' + output
+                        print '[%s] 删除文件%s失败！' % (nowtime(), deletepath)
+                else:
+                    print nowtime() + ' ' + output
+                    print '[%s] put目录%s失败！' % (nowtime(), deletepath)
+
         else:
             print '[' + nowtime() + '] ' + dirpath + dirs + '暂时不压缩或者删除！'
 
@@ -419,6 +497,7 @@ def have8date(line):
                         if status == 0 and output == '':
                             print '[%s] 压缩文件%s成功！' % (nowtime(), filename)
                         else:
+                            print nowtime() + ' ' + output
                             print '[%s] 压缩文件%s失败！' % (nowtime(), filename)
         elif int(dirs) <= int(deletedate):
             deletepath = dirpath + dirs
@@ -434,15 +513,27 @@ def have8date(line):
             if int(t) > int(deletedate):
                 pass
             elif int(t) <= int(deletedate):
-                commands.getstatusoutput('export HADOOP_USER_NAME=BDATA_GP_ADM')
-                commands.getstatusoutput('hdfs dfs -mkdir %s%s' % (HDFSDIR, deletepath))
-                hdfsdir = '%s%s' % (HDFSDIR, mkdirdeletepath)
-                commands.getstatusoutput('hdfs dfs -put %s %s' % (deletepath, hdfsdir))
-                (status, output) = commands.getstatusoutput('rm -r %s' % deletepath)
+                os.system('export HADOOP_USER_NAME=BDATA_GP_ADM')
+                (status, output) = commands.getstatusoutput('hdfs dfs -mkdir -p %s%s' % (HDFSDIR, deletepath))
                 if status == 0 and output == '':
-                    print '[%s] 删除文件%s成功！' % (nowtime(), deletepath)
+                    print '[%s] 创建目录%s成功！' % (nowtime(), deletepath)
                 else:
-                    print '[%s] 删除文件%s失败！' % (nowtime(), deletepath)
+                    print nowtime() + ' ' + output
+                    print '[%s] 创建目录%s失败！' % (nowtime(), deletepath)
+                hdfsdir = '%s%s' % (HDFSDIR, mkdirdeletepath)
+                (status, output) = commands.getstatusoutput('hdfs dfs -put %s %s' % (deletepath, hdfsdir))
+                if status == 0 and output == '':
+                    print '[%s] put目录%s成功！' % (nowtime(), deletepath)
+                    (status, output) = commands.getstatusoutput('rm -r %s' % deletepath)
+                    if status == 0 and output == '':
+                        print '[%s] 删除文件%s成功！' % (nowtime(), deletepath)
+                    else:
+                        print nowtime() + ' ' + output
+                        print '[%s] 删除文件%s失败！' % (nowtime(), deletepath)
+                else:
+                    print nowtime() + ' ' + output
+                    print '[%s] put目录%s失败！' % (nowtime(), deletepath)
+
         else:
             print '[%s] %s%s暂时不压缩或者删除' % (nowtime(), dirpath, dirs)
 
@@ -460,6 +551,7 @@ def havenodateandsystemname(dirpath, befordays, gzipdays, switchs):
                         if status == 0 and output == '':
                             print '[%s] 压缩文件%s%s成功！' % (nowtime(), dirpath, filename)
                         else:
+                            print nowtime() + ' ' + output
                             print '[%s] 压缩文件%s%s失败！' % (nowtime(), dirpath, filename)
                     elif int(filedate) <= int(deletedate):
                         if int(switchs) == CONSIDER:
@@ -471,15 +563,27 @@ def havenodateandsystemname(dirpath, befordays, gzipdays, switchs):
                         if int(t) > int(deletedate):
                             pass
                         elif int(t) <= int(deletedate):
-                            commands.getstatusoutput('export HADOOP_USER_NAME=BDATA_GP_ADM')
-                            commands.getstatusoutput('hdfs dfs -mkdir %s%s' % (HDFSDIR, dirpath))
-                            hdfsdir = '%s%s' % (HDFSDIR, dirpath)
-                            commands.getstatusoutput('hdfs dfs -put %s/%s %s/%s' % (dirpath, filename, hdfsdir, filename))
-                            (status, output) = commands.getstatusoutput('rm %s/%s' % (dirpath, filename))
+                            os.system('export HADOOP_USER_NAME=BDATA_GP_ADM')
+                            (status, output) = commands.getstatusoutput('hdfs dfs -mkdir -p %s%s' % (HDFSDIR, dirpath))
                             if status == 0 and output == '':
-                                print '[%s] 删除文件%s%s成功！' % (nowtime(), dirpath, filename)
+                                print '[%s] 创建目录%s成功！' % (nowtime(), dirpath)
                             else:
-                                print '[%s] 删除文件%s%s失败！' % (nowtime(), dirpath, filename)
+                                print nowtime() + ' ' + output
+                                print '[%s] 创建目录%s失败！' % (nowtime(), dirpath)
+                            hdfsdir = '%s%s' % (HDFSDIR, dirpath)
+                            (status, output) = commands.getstatusoutput('hdfs dfs -put %s/%s %s/%s' % (dirpath, filename, hdfsdir, filename))
+                            if status == 0 and output == '':
+                                print '[%s] put目录%s/%s成功！' % (nowtime(), dirpath, filename)
+                                (status, output) = commands.getstatusoutput('rm %s/%s' % (dirpath, filename))
+                                if status == 0 and output == '':
+                                    print '[%s] 删除文件%s/%s成功！' % (nowtime(), dirpath, filename)
+                                else:
+                                    print nowtime() + ' ' + output
+                                    print '[%s] 删除文件%s/%s失败！' % (nowtime(), dirpath, filename)
+                            else:
+                                print nowtime() + ' ' + output
+                                print '[%s] put目录%s/%s失败！' % (nowtime(), dirpath, filename)
+
                     else:
                         print '[' + nowtime() + '] ' + dirpath + DIRDELI + filename + '暂时不压缩或者删除！'
                 elif filename[-3:] == '.gz':
@@ -494,15 +598,27 @@ def havenodateandsystemname(dirpath, befordays, gzipdays, switchs):
                         if int(t) > int(deletedate):
                             pass
                         elif int(t) <= int(deletedate):
-                            commands.getstatusoutput('export HADOOP_USER_NAME=BDATA_GP_ADM')
-                            commands.getstatusoutput('hdfs dfs -mkdir %s%s' % (HDFSDIR, dirpath))
-                            hdfsdir = '%s%s' % (HDFSDIR, dirpath)
-                            commands.getstatusoutput('hdfs dfs -put %s/%s %s/%s' % (dirpath, filename, hdfsdir, filename))
-                            (status, output) = commands.getstatusoutput('rm %s/%s' % (dirpath, filename))
+                            os.system('export HADOOP_USER_NAME=BDATA_GP_ADM')
+                            (status, output) = commands.getstatusoutput('hdfs dfs -mkdir -p %s%s' % (HDFSDIR, dirpath))
                             if status == 0 and output == '':
-                                print '[%s] 删除文件%s%s成功！' % (nowtime(), dirpath, filename)
+                                print '[%s] 创建目录%s成功！' % (nowtime(), dirpath)
                             else:
-                                print '[%s] 删除文件%s%s失败！' % (nowtime(), dirpath, filename)
+                                print nowtime() + ' ' + output
+                                print '[%s] 创建目录%s失败！' % (nowtime(), dirpath)
+                            hdfsdir = '%s%s' % (HDFSDIR, dirpath)
+                            (status, output) = commands.getstatusoutput('hdfs dfs -put %s/%s %s/%s' % (dirpath, filename, hdfsdir, filename))
+                            if status == 0 and output == '':
+                                print '[%s] put目录%s/%s成功！' % (nowtime(), dirpath, filename)
+                                (status, output) = commands.getstatusoutput('rm %s/%s' % (dirpath, filename))
+                                if status == 0 and output == '':
+                                    print '[%s] 删除文件%s/%s成功！' % (nowtime(), dirpath, filename)
+                                else:
+                                    print nowtime() + ' ' + output
+                                    print '[%s] 删除文件%s/%s失败！' % (nowtime(), dirpath, filename)
+                            else:
+                                print nowtime() + ' ' + output
+                                print '[%s] put目录%s/%s失败！' % (nowtime(), dirpath, filename)
+
                     else:
                         print '[' + nowtime() + '] ' + dirpath + DIRDELI + filename + '暂时不压缩或者删除！'
 
@@ -530,7 +646,7 @@ def main():
             havenodateandsystemname(dirpath, befordays, gzipdays, switchs)
 
         #每月1号才执行
-        if current_time.tm_mday == 1: # and (current_time.tm_hour == 9) and (current_time.tm_min == 0) and (current_time.tm_sec == 0)):
+        if current_time.tm_mday == 8: # and (current_time.tm_hour == 9) and (current_time.tm_min == 0) and (current_time.tm_sec == 0)):
             if DATE6 in line :
                 dirpath = line.split(DATE6)[0]
                 deletemon = -int(line.split(',')[1])
@@ -556,7 +672,8 @@ def main():
 
 if len(sys.argv) == 2:
     stdout_backup = sys.stdout
-    log_file = open("cpdelete%s.log" % time.strftime('%Y%m%d', time.localtime(time.time())), 'w')
+    logfile = '/ETL/DATA/temp/mlei/cpdelete%s.log' % time.strftime('%Y%m%d', time.localtime(time.time()))
+    log_file = open(logfile, 'w')
     sys.stdout = log_file
     print '[%s] start process all file and dir!' % nowtime()
     main()
@@ -565,4 +682,3 @@ if len(sys.argv) == 2:
     sys.stdout = stdout_backup
 else:
     print 'The args num is incorrect!!'
-
