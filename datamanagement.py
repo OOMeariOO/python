@@ -1,47 +1,49 @@
 #coding: utf-8
+
+# @Author: 米 雷
+# @File: datamanagement.py
+# @Time: 2017/5/3
+# @Contact: 1262585769@qq.com
+# @Description: ETL数据仓库中数据的备份和删除程序，把指定目录中的源数据文件和生成文件按一定规则备份删除压缩
+#               删除以前先把要删除的文件被分到hdfs上。删除中有一个判断，如果是最近不得数，不删除！
+
 import time
-import subprocess
-import datetime
-import itertools
 import os
 import sys
 import commands
-import string
-from time import strftime, localtime
 from datetime import timedelta, date
 import calendar
-import re
 
-confidfile = 'config.txt'
-"""
-/ETL/LOG,180
-/ETL/DATA/fail/tkterror,180
-/ETL/DATA/fail/bypass/{{SYSTEMNAME}},180
-/ETL/DATA/fail/corrupt/{{SYSTEMNAME}},180
-/ETL/DATA/fail/duplicate/{{SYSTEMNAME}},180
-/ETL/DATA/fail/error/{{SYSTEMNAME}},180
-/ETL/LOG/{{SYSTEMNAME}},180
-/ETL/DATA/complete/{{SYSTEMNAME}},60
-/ETL/DATA/export/{{YYYYMMDD}},60
-/ETL/DATA/savehostf/{{YYYYMMDD}},60
-/ETL/DATA/fail/unknown/{{YYYYMMDD}},180
-/ETL/DATA/prod_data/bidt/{{YYYYMM}}
-/ETL/DATA/prod_data/midt/all_midt/{{YYYYMM}}
-/ETL/DATA/prod_data/midt/ua_{{YYMM}}
-/ETL/DATA/prod_data/sond/crs/{{YYMM}}
-/ETL/DATA/prod_data/sond/ics/{{YYMM}}
-说明：
-1.目录中没有日期的，需要加保留的天数，用逗号分隔，写完整路径（第1-2行）
-2.目录中带有系统名的，需要加保留的天数，用逗号分隔，路径写到系统名即可（第3-8行）
-3.目录中有日期，且日期为八位数的，需要加保留天数，用逗号分隔，路径写到日期目录（9-11行）
-4.目录中有日期，且日期为四位或六位的，不需要加保留的天数，路径写到日期目录（12-16行）
-"""
+ETLDIR = 'ETL'
+DATADIR = 'DATA'
+DIRDELI = '/'
+LOGFILEDIR = '/ETL/DATA/meari/DATA/LOG'
+TKTERRORDIR = '/ETL/DATA/meari/DATA/fail/tkterror'
+BIDTDATADIR = '/ETL/DATA/meari/DATA/prod_data/bidt_data/'
+ETLDATAEXE = '/ETL/bin/EtlDate.exe'
+SYSTEM = '{{SYSTEMNAME}}'
+SYSTEM8DATE = '{{SYSTEMNAME}}/{{YYYYMMDD}}'
+SYSTEM6DATE = '{{SYSTEMNAME}}/{{YYYYMM}}'
+SYSTEM4DATE = '{{SYSTEMNAME}}/{{YYMM}}'
+DATE8 = '{{YYYYMMDD}}'
+DATE6 = '{{YYYYMM}}'
+DATE4 = '{{YYMM}}'
+HDFSDIR = '/data/GP/ETL_BAK'
+CONSIDER = 0
+configfile = '/ETL/DATA/meari/config.txt'
+ISOTIMEFORMAT= '%Y-%m-%d %X'
 todaystr = sys.argv[1]
+
 BEFOREYEAR = -12
 BEFOREMON = -1
 year = todaystr[0:4]
 mon = todaystr[4:6]
 day = todaystr[6:]
+
+
+def nowtime():
+
+    return time.strftime( ISOTIMEFORMAT, time.localtime( time.time() ) )
 
 def get_days_of_month(year, mon):
     """
@@ -99,6 +101,18 @@ def getyearandmonth(n=0):
             j = addzero(j)
             return (str(thisyear), str(j), days)
 
+def get_day_of_day(n=0):
+    """
+    if n>=0,date is larger than today
+    if n<0,date is less than today
+    date format = "YYYY-MM-DD"
+    """
+    if (n < 0):
+        n = abs(n)
+        return (date.today() - timedelta(days=n)).strftime("%Y%m%d")
+    else:
+        return (date.today() + timedelta(days=n)).strftime("%Y%m%d")
+
 def get_today_month(n=0):
     """
     获取当前日期前后N月的日期
@@ -113,151 +127,442 @@ def get_today_month(n=0):
     return "".join("%s" % i for i in arr)
 
 def BeforeDate(todaystr, Offset):
-    return os.popen("/ETL/bin/EtlDate.exe %s -%s" % (todaystr, Offset)).read().strip('\n')
+    return os.popen("%s %s -%s" % (ETLDATAEXE, todaystr, Offset)).read().strip('\n')
+
 
 def havesystemname(line):
-    dirpath = line.split('{{SYSTEMNAME}}')[0]
+    dirpath = line.split(SYSTEM)[0]
+    befordays = line.split(',')[1]
+    gzipddays = line.split(',')[2]
+    switchs = line.split(',')[3]
     dirlist = os.listdir(dirpath)
+    gzipbegindate = get_day_of_day(-int(gzipddays))
+    deletedate = BeforeDate(todaystr, befordays)
+
     if 'MetaDataLogBk' in dirlist:
         dirlist.remove('MetaDataLogBk')
-        print 'MetaDataLogBk目录不作处理'
-    befordays = line.split(',')[1]
+        print '[' + nowtime() + '] ' + 'MetaDataLogBk目录不作处理'
     for systemname in dirlist:
-        systempath = dirpath + systemname
-        if os.path.isdir(systempath):
-            deletedate = BeforeDate(todaystr, befordays)
-            gzipdirpath = systempath + '/' + todaystr
-            deletepath = systempath + '/' + deletedate
-            if os.path.exists(gzipdirpath):
+        if os.path.isdir(dirpath + systemname):
+            datedirlist = os.listdir(dirpath + systemname)
+            for datedir in datedirlist:
+                if os.path.isdir(dirpath + systemname + DIRDELI + datedir):
 
-                print '开始压缩目录%s' % gzipdirpath
-                (status, output) = commands.getstatusoutput('gzip %s/*'%gzipdirpath)
-                if status == 0 and output == '':
-                    print '压缩%s成功！' % gzipdirpath
-                    (status, output) = commands.getstatusoutput('rm -r %s' % deletepath)
-                    if status == 0 and output == '':
-                        print '删除%s成功！' % deletepath
-                    else:
-                        print '删除%s失败！' % deletepath
-                else:
-                    print '压缩%s失败,该目录的文件可能已经压缩，或者不存在！' % gzipdirpath
-                    (status, output) = commands.getstatusoutput('rm -r %s' % deletepath)
-                    if status == 0 and output == '':
-                        print '删除%s成功！' % deletepath
-                    else:
-                        print '删除%s失败！' % deletepath
-            else:
-                print '目录%s不存在，无法处理！' % gzipdirpath
+                    if datedir.isdigit() and len(datedir) == 8:
+                        if (int(datedir) > int(deletedate)) and (int(datedir) <= int(gzipbegindate)):
+                            filedirlist = os.listdir(dirpath + systemname + DIRDELI + datedir)
+                            for files in filedirlist:
+                                filename = dirpath + systemname + DIRDELI + datedir + DIRDELI + files
+                                if os.path.isfile('%s' % filename):
+                                    if filename[-3:] == '.gz' or filename[-2:] == '.Z' or filename[-3:] == 'zip':
+                                        pass
+                                    else:
+                                        (status, output) = commands.getstatusoutput('gzip %s' % filename)
+                                        if status == 0 and output == '':
+                                            print '[%s] 压缩文件%s成功！' % (nowtime(), filename)
+                                        else:
+                                            print '[%s] 压缩文件%s失败！' % (nowtime(), filename)
+                        elif int(datedir) <= int(deletedate):
+                            deletepath = dirpath + systemname + DIRDELI + datedir
+                            mkdirdeletepath = dirpath + systemname + DIRDELI
+                            if int(switchs) == CONSIDER:
+                                t = os.stat(deletepath)[8]
+                                t = float(t)
+                                t = time.strftime('%Y%m%d', time.gmtime(t))
+                            else:
+                                t = datedir
+                            if int(t) > int(deletedate):
+                                pass
+                            elif int(t) <= int(deletedate):
+                                commands.getstatusoutput('export HADOOP_USER_NAME=BDATA_GP_ADM')
+                                commands.getstatusoutput('hdfs dfs -mkdir %s%s'%(HDFSDIR, deletepath))
+                                hdfsdir = '%s%s'%(HDFSDIR, mkdirdeletepath)
+                                commands.getstatusoutput('hdfs dfs -put %s %s'%(deletepath, hdfsdir))
+                                (status, output) = commands.getstatusoutput('rm -r %s' % deletepath)
+                                if status == 0 and output == '':
+                                    print '[%s] 删除文件%s成功！' % (nowtime(), deletepath)
+                                else:
+                                    print '[%s] 删除文件%s失败！' % (nowtime(), deletepath)
+                        else:
+                            print '[' + nowtime() + '] ' + dirpath + systemname + DIRDELI + datedir + '暂时不压缩或者删除！'
+                    elif datedir.isdigit() and len(datedir) == 6:
+                        deletedate = deletedate[0:6]
+                        gzipbegindate = gzipbegindate[0:6]
+                        if (int(datedir) > int(deletedate)) and (int(datedir) <= int(gzipbegindate)):
+                            filedirlist = os.listdir(dirpath + systemname + DIRDELI + datedir)
+                            for files in filedirlist:
+                                filename = dirpath + systemname + DIRDELI + datedir + DIRDELI + files
+                                if os.path.isfile('%s' % filename):
+                                    if filename[-3:] == '.gz' or filename[-2:] == '.Z' or filename[-3:] == 'zip':
+                                        pass
+                                    else:
+                                        (status, output) = commands.getstatusoutput('gzip %s' % filename)
+                                        if status == 0 and output == '':
+                                            print '[%s] 压缩文件%s成功！' % (nowtime(), filename)
+                                        else:
+                                            print '[%s] 压缩文件%s失败！' % (nowtime(), filename)
+                        elif int(datedir) <= int(deletedate):
+                            deletepath = dirpath + systemname + DIRDELI + datedir
+                            mkdirdeletepath = dirpath + systemname + DIRDELI
+                            if int(switchs) == CONSIDER:
+                                t = os.stat(deletepath)[8]
+                                t = float(t)
+                                t = time.strftime('%Y%m%d', time.gmtime(t))[0:6]
+                            else:
+                                t = datedir
+                            if int(t) > int(deletedate):
+                                pass
+                            elif int(t) <= int(deletedate):
+                                commands.getstatusoutput('export HADOOP_USER_NAME=BDATA_GP_ADM')
+                                commands.getstatusoutput('hdfs dfs -mkdir %s%s' % (HDFSDIR, deletepath))
+                                hdfsdir = '%s%s' % (HDFSDIR, mkdirdeletepath)
+                                commands.getstatusoutput('hdfs dfs -put %s %s' % (deletepath, hdfsdir))
+                                (status, output) = commands.getstatusoutput('rm -r %s' % deletepath)
+                                if status == 0 and output == '':
+                                    print '[%s] 删除文件%s成功！' % (nowtime(), deletepath)
+                                else:
+                                    print '[%s] 删除文件%s失败！' % (nowtime(), deletepath)
+                        else:
+                            print '[' + nowtime() + '] ' + dirpath + systemname + DIRDELI + datedir + '暂时不压缩或者删除！'
+                    elif datedir.isdigit() and len(datedir) == 4:
+                        deletedate = deletedate[0:4]
+                        gzipbegindate = gzipbegindate[0:4]
+                        if ((datedir) > int(deletedate)) and (int(datedir) <= int(gzipbegindate)):
+                            filedirlist = os.listdir(dirpath + systemname + DIRDELI + datedir)
+                            for files in filedirlist:
+                                filename = dirpath + systemname + DIRDELI + datedir + DIRDELI + files
+                                if os.path.isfile('%s' % filename):
+                                    if filename[-3:] == '.gz' or filename[-2:] == '.Z' or filename[-3:] == 'zip':
+                                        pass
+                                    else:
+                                        (status, output) = commands.getstatusoutput('gzip %s' % filename)
+                                        if status == 0 and output == '':
+                                            print '[%s] 压缩文件%s成功！' % (nowtime(), filename)
+                                        else:
+                                            print '[%s] 压缩文件%s失败！' % (nowtime(), filename)
+                        elif int(datedir) <= int(deletedate):
+                            deletepath = dirpath + systemname + DIRDELI + datedir
+                            mkdirdeletepath = dirpath + systemname + DIRDELI
+                            if int(switchs) == CONSIDER:
+                                t = os.stat(deletepath)[8]
+                                t = float(t)
+                                t = time.strftime('%Y%m%d', time.gmtime(t))[2:6]
+                            else:
+                                t = datedir
+                            if int(t) > int(deletedate):
+                                pass
+                            elif int(t) <= int(deletedate):
+                                commands.getstatusoutput('export HADOOP_USER_NAME=BDATA_GP_ADM')
+                                commands.getstatusoutput('hdfs dfs -mkdir %s%s' % (HDFSDIR, deletepath))
+                                hdfsdir = '%s%s' % (HDFSDIR, mkdirdeletepath)
+                                commands.getstatusoutput('hdfs dfs -put %s %s' % (deletepath, hdfsdir))
+                                (status, output) = commands.getstatusoutput('rm -r %s' % deletepath)
+                                if status == 0 and output == '':
+                                    print '[%s] 删除文件%s成功！' % (nowtime(), deletepath)
+                                else:
+                                    print '[%s] 删除文件%s失败！' % (nowtime(), deletepath)
+                        else:
+                            print '[' + nowtime() + '] ' + dirpath + systemname + DIRDELI + datedir + '暂时不压缩或者删除！'
 
 
-def have4or6date(dirpath, slicehead):
-    deletedate = get_today_month(BEFOREYEAR)
+
+
+def have4or6date(dirpath, slicehead, deletemon, keepmon, switchs):
+    deletedate = get_today_month(deletemon)
     deletedatemon = deletedate[slicehead:6]
-    lastmonth = get_today_month(BEFOREMON)
-    lastmondate = lastmonth[slicehead:6]
-    gzipdirpath = dirpath + lastmondate
-    deletepath = dirpath + deletedatemon
-    if os.path.exists(gzipdirpath):
-        print '开始压缩目录%s' % gzipdirpath
-        (status, output) = commands.getstatusoutput('gzip %s/*' % gzipdirpath)
-        if status == 0 and output == '':
-            print '压缩%s成功！' % gzipdirpath
-            (status, output) = commands.getstatusoutput('rm -r %s' % deletepath)
-            if status == 0 and output == '':
-                print '删除%s成功！' % deletepath
-            else:
-                print '删除%s失败！' % deletepath
-        else:
-            print '压缩%s失败,该目录的文件可能已经压缩，或者不存在！' % gzipdirpath
-            (status, output) = commands.getstatusoutput('rm -r %s' % deletepath)
-            if status == 0 and output == '':
-                print '删除%s成功！' % deletepath
-            else:
-                print '删除%s失败！' % deletepath
-    else:
-        print '目录%s不存在，无法处理！' % gzipdirpath
+    gzipbegindate = get_today_month(keepmon)
+    gzipbeginmon = gzipbegindate[slicehead:6]
+    if dirpath[-3:] == 'ua_':
+        datedirlist = os.listdir(dirpath[0:-3])
+        for datedir in datedirlist:
+            if datedir[0:3] == 'ua_':
+                if (int(datedir[3:]) > int(deletedatemon)) and (int(datedir[3:]) <= int(gzipbeginmon)):
+                    filesdirlist = os.listdir(dirpath[0:-3] + datedir)
+                    for files in filesdirlist:
+                        filename = dirpath[0:-3] + datedir + DIRDELI + files
+                        if os.path.isfile(filename):
+                            if filename[-3:] == '.gz' or filename[-2:] == '.Z' or filename[-3:] == 'zip':
+                                pass
+                            else:
+                                (status, output) = commands.getstatusoutput('gzip %s' % filename)
+                                if status == 0 and output == '':
+                                    print '[%s] 压缩文件%s成功！' % (nowtime(), filename)
+                                else:
+                                    print '[%s] 压缩文件%s失败！' % (nowtime(), filename)
+                elif int(datedir[3:]) <= int(deletedatemon):
+                    deletepath = dirpath[0:-3] + datedir
+                    mkdirdeletepath = dirpath[0:-3]
+                    if int(switchs) == CONSIDER:
+                        t = os.stat(deletepath)[8]
+                        t = float(t)
+                        t = (time.strftime('%Y%m%d', time.gmtime(t)))[2:6]
+                    else:
+                        t = datedir[3:]
+                    if int(t) > int(deletedatemon):
+                        pass
+                    elif int(t) <= int(deletedatemon):
+                        commands.getstatusoutput('export HADOOP_USER_NAME=BDATA_GP_ADM')
+                        commands.getstatusoutput('hdfs dfs -mkdir %s%s' % (HDFSDIR, deletepath))
+                        hdfsdir = '%s%s' % (HDFSDIR, mkdirdeletepath)
+                        commands.getstatusoutput('hdfs dfs -put %s %s' % (deletepath, hdfsdir))
+                        (status, output) = commands.getstatusoutput('rm -r %s' % deletepath)
+                        if status == 0 and output == '':
+                            print '[%s] 删除文件%s成功！' % (nowtime(), deletepath)
+                        else:
+                            print '[%s] 删除文件%s失败！' % (nowtime(), deletepath)
+                else:
+                    print '[' + nowtime() + '] ' + dirpath[0:-3] + datedir + '暂时不压缩或者删除！'
+    elif 'all_midt' in dirpath or 'bidt/' in dirpath or 'sond' in dirpath:
+        dirlist = os.listdir(dirpath)
+        for datedir in dirlist:
+            if datedir.isdigit():
+                if os.path.isdir(dirpath + datedir):
+                    if (int(datedir) > int(deletedatemon)) and (int(datedir) <= int(gzipbeginmon)):
+                        fileslist = os.listdir(dirpath + datedir)
+                        for files in fileslist:
+                            filename = dirpath + datedir + DIRDELI + files
+                            if os.path.isfile(filename):
+                                if filename[-3:] == '.gz' or filename[-2:] == '.Z' or filename[-3:] == 'zip':
+                                    pass
+                                else:
+                                    (status, output) = commands.getstatusoutput('gzip %s' % filename)
+                                    if status == 0 and output == '':
+                                        print '[%s] 压缩文件%s成功！' % (nowtime(), filename)
+                                    else:
+                                        print '[%s] 压缩文件%s失败！' % (nowtime(), filename)
+                    elif int(datedir) <= int(deletedatemon):
+                        deletepath = dirpath + datedir
+                        mkdirdeletepath = dirpath
+                        if int(switchs) == CONSIDER:
+                            t = os.stat(deletepath)[8]
+                            t = float(t)
+                            t = (time.strftime('%Y%m%d', time.gmtime(t)))[0:6]
+                        else:
+                            t = datedir
+                        if int(t) > int(deletedatemon):
+                            pass
+                        elif int(t) <= int(deletedatemon):
+                            commands.getstatusoutput('export HADOOP_USER_NAME=BDATA_GP_ADM')
+                            commands.getstatusoutput('hdfs dfs -mkdir %s%s' % (HDFSDIR, deletepath))
+                            hdfsdir = '%s%s' % (HDFSDIR, mkdirdeletepath)
+                            commands.getstatusoutput('hdfs dfs -put %s %s' % (deletepath, hdfsdir))
+                            (status, output) = commands.getstatusoutput('rm -r %s' % deletepath)
+                            if status == 0 and output == '':
+                                print '[%s] 删除文件%s成功！' % (nowtime(), deletepath)
+                            else:
+                                print '[%s] 删除文件%s失败！' % (nowtime(), deletepath)
+                    else:
+                        print '[' + nowtime() + '] ' + dirpath + datedir + '暂时不压缩或者删除！'
 
+def bidt_data(dirpath, befordays, gzipdays, switchs):
+    deletedate = BeforeDate(todaystr, befordays)
+    gzipbegindate = BeforeDate(todaystr, gzipdays)
+    dirlist = []
+    for d in os.listdir(dirpath):
+        if os.path.isdir(dirpath + d):
+            if d.isdigit():
+                dirlist.append(d)
+    for dirs in dirlist:#循环list
+        if (int(dirs) > int(deletedate)) and (int(dirs) <= int(gzipbegindate)):
+            (status, output) = commands.getstatusoutput('gzip %s%s/*/*' % (dirpath, dirs))
+
+            if status == 0 and output == '':
+                print '[%s] 压缩目录%s%s成功！' % (nowtime(), dirpath, dirs)
+            else:
+                print '[%s] 压缩目录%s%s失败！可能该目录下的文件就是压缩文件！' % (nowtime(), dirpath, dirs)
+        elif int(dirs) <= int(deletedate):
+            deletepath = dirpath + dirs
+            mkdirdeletepath = dirpath
+            if int(switchs) == CONSIDER:
+                t = os.stat(deletepath)[8]
+                t = float(t)
+                t = time.strftime('%Y%m%d', time.gmtime(t))
+            else:
+                t = dirs
+            if int(t) > int(deletedate):
+                pass
+            elif int(t) <= int(deletedate):
+                commands.getstatusoutput('export HADOOP_USER_NAME=BDATA_GP_ADM')
+                commands.getstatusoutput('hdfs dfs -mkdir %s%s' % (HDFSDIR, deletepath))
+                hdfsdir = '%s%s' % (HDFSDIR, mkdirdeletepath)
+                commands.getstatusoutput('hdfs dfs -put %s %s' % (deletepath, hdfsdir))
+                (status, output) = commands.getstatusoutput('rm -r %s' % deletepath)
+                if status == 0 and output == '':
+                    print '[%s] 删除文件%s成功！' % (nowtime(), deletepath)
+                else:
+                    print '[%s] 删除文件%s失败！' % (nowtime(), deletepath)
+        else:
+            print '[' + nowtime() + '] ' + dirpath + dirs + '暂时不压缩或者删除！'
 
 def have8date(line):
-    dirpath = line.split('{{YYYYMMDD}}')[0]
-    befordays = line.split(',')[1]
-    deletedate = BeforeDate(todaystr, befordays)
-    gzipdirpath = dirpath + todaystr
-    deletepath = dirpath + deletedate
-    if os.path.exists(gzipdirpath):
-        print '开始压缩目录%s' % gzipdirpath
-        (status, output) = commands.getstatusoutput('gzip %s/*' % gzipdirpath)
-        if status == 0 and output == '':
-            print '压缩%s成功！' % gzipdirpath
-            (status, output) = commands.getstatusoutput('rm -r %s' % deletepath)
-            if status == 0 and output == '':
-                print '删除%s成功！' % deletepath
-            else:
-                print '删除%s失败！' % deletepath
-        else:
-            print '压缩%s失败,该目录的文件可能已经压缩，或者不存在！' % gzipdirpath
-            (status, output) = commands.getstatusoutput('rm -r %s' % deletepath)
-            if status == 0 and output == '':
-                print '删除%s成功！' % deletepath
-            else:
-                print '删除%s失败！' % deletepath
-    else:
-        print '目录%s不存在，无法处理！' % gzipdirpath
+    dirpath = line.split(DATE8)[0]#获取配置文件中的操作目录
+    befordays = line.split(',')[1]#获取配置文件中删除天数
+    gzipddays = line.split(',')[2]#获取配置文件中的压缩天数
+    switchs = line.split(',')[3]
+    gzipbegindate = get_day_of_day(-int(gzipddays))#截止压缩的日期
+    deletedate = BeforeDate(todaystr, befordays)#需要删除的日期
+    dirlist = []
+    for d in os.listdir(dirpath):
+        if os.path.isdir('%s%s' % (dirpath, d)):
+            if d.isdigit():
+                dirlist.append(d)#把操作目录下的所有目录放到list里
+    for dirs in dirlist:#循环list
+        if (int(dirs) > int(deletedate)) and (int(dirs) <= int(gzipbegindate)):#把压缩日期段的所有文件压缩
+            for files in os.listdir('%s%s' % (dirpath, dirs)):
+                filename = '%s%s/%s' % (dirpath, dirs, files)
 
-def havenodateandsystemname(dirpath, befordays):
+                if os.path.isfile('%s' % filename):
+                    if filename[-3:] == '.gz' or filename[-2:] == '.Z' or filename[-3:] == 'zip':
+                        pass
+                    else:
+                        (status, output) = commands.getstatusoutput('gzip %s' % filename)
+                        if status == 0 and output == '':
+                            print '[%s] 压缩文件%s成功！' % (nowtime(), filename)
+                        else:
+                            print '[%s] 压缩文件%s失败！' % (nowtime(), filename)
+        elif int(dirs) <= int(deletedate):
+            deletepath = dirpath + dirs
+            mkdirdeletepath = dirpath
+            if int(switchs) == CONSIDER:
+                t = os.stat(deletepath)[8]
+                t = float(t)
+                t = time.strftime('%Y%m%d', time.gmtime(t))
+
+            else:
+                t = dirs
+
+            if int(t) > int(deletedate):
+                pass
+            elif int(t) <= int(deletedate):
+                commands.getstatusoutput('export HADOOP_USER_NAME=BDATA_GP_ADM')
+                commands.getstatusoutput('hdfs dfs -mkdir %s%s' % (HDFSDIR, deletepath))
+                hdfsdir = '%s%s' % (HDFSDIR, mkdirdeletepath)
+                commands.getstatusoutput('hdfs dfs -put %s %s' % (deletepath, hdfsdir))
+                (status, output) = commands.getstatusoutput('rm -r %s' % deletepath)
+                if status == 0 and output == '':
+                    print '[%s] 删除文件%s成功！' % (nowtime(), deletepath)
+                else:
+                    print '[%s] 删除文件%s失败！' % (nowtime(), deletepath)
+        else:
+            print '[%s] %s%s暂时不压缩或者删除' % (nowtime(), dirpath, dirs)
+
+def havenodateandsystemname(dirpath, befordays, gzipdays, switchs):
     deletedate = BeforeDate(todaystr, befordays)
+    gzipbegindate = BeforeDate(todaystr, gzipdays)
 
     for dirpaths, dirnames, filenames in os.walk(dirpath):
         for filename in filenames:
-            if os.path.exists('%s/%s' % (dirpath,filename)):
-                if todaystr in filename: #and filename[-3] != '.gz':
-                    if filename[-3] != '.gz':
-                        suffix = filename[-4:]
-                        deletefile = filename[0:-12] + deletedate + suffix + '.gz'
+            if os.path.isfile(dirpath + DIRDELI + filename):
+                if filename[-3:] != '.gz' and filename[-3:] != 'out' and filename[-2:] != '.Z' and filename[-3:] != 'zip':
+                    filedate = filename[-12:-4]
+                    if (int(filedate) > int(deletedate)) and (int(filedate) <= int(gzipbegindate)):
                         (status, output) = commands.getstatusoutput('gzip %s/%s' % (dirpath, filename))
                         if status == 0 and output == '':
-                            print '压缩文件%s/%s成功！' % (dirpath, filename)
-
-                            (status, output) = commands.getstatusoutput('rm %s/%s' % (dirpath, deletefile))
+                            print '[%s] 压缩文件%s%s成功！' % (nowtime(), dirpath, filename)
+                        else:
+                            print '[%s] 压缩文件%s%s失败！' % (nowtime(), dirpath, filename)
+                    elif int(filedate) <= int(deletedate):
+                        if int(switchs) == CONSIDER:
+                            t = os.stat(dirpath+filename)[8]
+                            t = float(t)
+                            t = time.strftime('%Y%m%d', time.gmtime(t))
+                        else:
+                            t = filedate
+                        if int(t) > int(deletedate):
+                            pass
+                        elif int(t) <= int(deletedate):
+                            commands.getstatusoutput('export HADOOP_USER_NAME=BDATA_GP_ADM')
+                            commands.getstatusoutput('hdfs dfs -mkdir %s%s' % (HDFSDIR, dirpath))
+                            hdfsdir = '%s%s' % (HDFSDIR, dirpath)
+                            commands.getstatusoutput('hdfs dfs -put %s/%s %s/%s' % (dirpath, filename, hdfsdir, filename))
+                            (status, output) = commands.getstatusoutput('rm %s/%s' % (dirpath, filename))
                             if status == 0 and output == '':
-                                print '删除文件%s/%s成功！' % (dirpath, deletefile)
+                                print '[%s] 删除文件%s%s成功！' % (nowtime(), dirpath, filename)
                             else:
-                                print '删除文件%s/%s失败！' % (dirpath, deletefile)
-                        else:
-                            print '压缩文件%s/%s失败！' % (dirpath, filename)
+                                print '[%s] 删除文件%s%s失败！' % (nowtime(), dirpath, filename)
                     else:
-                        suffix = filename[-7:-3]
-                        deletefile = filename[0:-15] + deletedate + suffix + '.gz'
-                        (status, output) = commands.getstatusoutput('rm %s/%s' % (dirpath, deletefile))
-                        if status == 0 and output == '':
-                            print '删除文件%s/%s成功！' % (dirpath, deletefile)
+                        print '[' + nowtime() + '] ' + dirpath + DIRDELI + filename + '暂时不压缩或者删除！'
+                elif filename[-3:] == '.gz':
+                    filedate = filename[-15:-7]
+                    if int(filedate) <= int(deletedate):
+                        if int(switchs) == CONSIDER:
+                            t = os.stat(dirpath+filename)[8]
+                            t = float(t)
+                            t = time.strftime('%Y%m%d', time.gmtime(t))
                         else:
-                            print '删除文件%s/%s失败！' % (dirpath, deletefile)
+                            t = filedate
+                        if int(t) > int(deletedate):
+                            pass
+                        elif int(t) <= int(deletedate):
+                            commands.getstatusoutput('export HADOOP_USER_NAME=BDATA_GP_ADM')
+                            commands.getstatusoutput('hdfs dfs -mkdir %s%s' % (HDFSDIR, dirpath))
+                            hdfsdir = '%s%s' % (HDFSDIR, dirpath)
+                            commands.getstatusoutput('hdfs dfs -put %s/%s %s/%s' % (dirpath, filename, hdfsdir, filename))
+                            (status, output) = commands.getstatusoutput('rm %s/%s' % (dirpath, filename))
+                            if status == 0 and output == '':
+                                print '[%s] 删除文件%s%s成功！' % (nowtime(), dirpath, filename)
+                            else:
+                                print '[%s] 删除文件%s%s失败！' % (nowtime(), dirpath, filename)
+                    else:
+                        print '[' + nowtime() + '] ' + dirpath + DIRDELI + filename + '暂时不压缩或者删除！'
+
+def main():
+    fd = open(configfile, 'r')
 
 
-fd = open(confidfile, 'r')
 
-while True:
-    current_time = time.localtime(time.time())
-    line = fd.readline().split('\n')[0]
-    if len(line) == 0:
-        break
-    if '{{SYSTEMNAME}}' in line:
-        havesystemname(line)
-    elif '{{YYYYMMDD}}' in line:
-        have8date(line)
+    while True:
+        current_time = time.localtime(time.time())
+        line = fd.readline().split('\n')[0]
+        if len(line) == 0:
+            break
+        if SYSTEM8DATE in line or SYSTEM6DATE in line or SYSTEM4DATE in line:
+            havesystemname(line)
+        elif DATE8 in line and SYSTEM not in line and 'bidt_data' not in line:
+            have8date(line)
 
-    elif line[0:-4] == '/ETL/LOG' or line[0:-4] == '/ETL/DATA/fail/tkterror':
-        dirpath = line[0:-4]
-        befordays = line.split(',')[1]
-        havenodateandsystemname(dirpath, befordays)
 
-    #每月1号才执行
-    if current_time.tm_mday == 1: # and (current_time.tm_hour == 9) and (current_time.tm_min == 0) and (current_time.tm_sec == 0)):
-        if '{{YYYYMM}}' in line :
-            dirpath = line.split('{{YYYYMM}}')[0]
-            have4or6date(dirpath, 0)
+        elif (line.split(',')[0] == LOGFILEDIR) or (line.split(',')[0] == TKTERRORDIR):
+            dirpath = line.split(',')[0] + DIRDELI
+            befordays = line.split(',')[1]
+            gzipdays = line.split(',')[2]
+            switchs = line.split(',')[3]
+            havenodateandsystemname(dirpath, befordays, gzipdays, switchs)
 
-        elif '{{YYMM}}' in line:
-            dirpath = line.split('{{YYMM}}')[0]
-            have4or6date(dirpath, 2)
+        #每月1号才执行
+        if current_time.tm_mday == 1: # and (current_time.tm_hour == 9) and (current_time.tm_min == 0) and (current_time.tm_sec == 0)):
+            if DATE6 in line :
+                dirpath = line.split(DATE6)[0]
+                deletemon = -int(line.split(',')[1])
+                keepmon = -int(line.split(',')[2])
+                switchs = line.split(',')[3]
+                have4or6date(dirpath, 0, deletemon, keepmon, switchs)
+
+            elif DATE4 in line:
+                dirpath = line.split(DATE4)[0]
+                deletemon = -int(line.split(',')[1])
+                keepmon = -int(line.split(',')[2])
+                switchs = line.split(',')[3]
+                have4or6date(dirpath, 2, deletemon, keepmon, switchs)
+
+            elif line.split(DATE8)[0] == BIDTDATADIR:
+                dirpath = line.split(DATE8)[0]
+                befordays = line.split(',')[1]
+                gzipdays = line.split(',')[2]
+                switchs = line.split(',')[3]
+                bidt_data(dirpath, befordays, gzipdays, switchs)
+
+
+
+if len(sys.argv) == 2:
+    stdout_backup = sys.stdout
+    log_file = open("cpdelete%s.log" % time.strftime('%Y%m%d', time.localtime(time.time())), 'w')
+    sys.stdout = log_file
+    print '[%s] start process all file and dir!' % nowtime()
+    main()
+    print '[%s] all file and dir is process over!' % nowtime()
+    log_file.close()
+    sys.stdout = stdout_backup
+else:
+    print 'The args num is incorrect!!'
+
